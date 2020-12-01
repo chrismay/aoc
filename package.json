@@ -22,5 +22,6 @@
     "@typescript-eslint/eslint-plugin": "^2.34.0",
     "@typescript-eslint/parser": "^2.34.0",
     "eslint": "^6.8.0"
-  }
+  },
+   "engines" : { "node" : ">=12.20" } 
 }
