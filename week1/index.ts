@@ -1,4 +1,4 @@
-import { fromPairs, multiply, toNumber } from "lodash";
+import { Dictionary, fromPairs, multiply, toNumber } from "lodash";
 import { expensesInput } from "./day1_input";
 
 const cartesianProduct = <T>(...sets: T[][]) =>
@@ -12,7 +12,7 @@ export function day1() {
   const expenses: number[] = expensesInput.split("\n").map(toNumber);
 
   // find all possible pairs of expenses and store them in a dictionary, keyed by their sum.
-  const pairs = fromPairs(
+  const pairs: Dictionary<[number, number]> = fromPairs(
     cartesianProduct(expenses, expenses).map(([e1, e2]) => [e1 + e2, [e1, e2]])
   );
 
@@ -20,9 +20,12 @@ export function day1() {
   console.log("Part 1: ", ...part1, part1.reduce(multiply));
 
   // find any value in the expenses list which can be added to one of the sums that we've already calculated
-  // to give 2020. We don't care if there's more than one; just pick the first.
-  const thirdValue = expenses.filter((e) => pairs[2020 - e])[0];
-  const part2 = [thirdValue, ...pairs[2020 - thirdValue]]; // answer to part 2 is the 3 values that add to 2020
+  // to give 2020.
+  const thirdValue = expenses.find((e) => pairs[2020 - e]);
 
-  console.log("Part 2:", ...part2, part2.reduce(multiply));
+  // If there's no such value then something's gone wrong, because the instructions said there should be.
+  if (thirdValue != undefined) {
+    const part2 = [thirdValue, ...pairs[2020 - thirdValue]]; // answer to part 2 is the 3 values that add to 2020
+    console.log("Part 2:", ...part2, part2.reduce(multiply));
+  }
 }
