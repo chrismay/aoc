@@ -8,7 +8,7 @@ const cartesianProduct = <T>(...sets: T[][]) =>
     [[]]
   );
 
-export function day1() {
+export function day1(): void {
   const expenses: number[] = expensesInput.split("\n").map(toNumber);
 
   // find all possible pairs of expenses and store them in a dictionary, keyed by their sum.
