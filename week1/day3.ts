@@ -1,3 +1,4 @@
+import { multiply } from "lodash";
 import { skiMap } from "./day3_input";
 
 // describes the kind of moves we can make on the map. They're always "down Y, right X".
@@ -10,14 +11,12 @@ type Move = {
 type Progress = {
   xPos: number; // How far right have we travelled so far?
   treeCount: number; // how many trees have we seen so far?
-  skipCountDown: number; // Do we need to skip this line (e.g. because we're doing "down 2")?
 };
 
-const initProgress: Progress = {
+const startPosition: Progress = {
   // always start in the top left corner.
   xPos: 0,
   treeCount: 0,
-  skipCountDown: 0, // never skip the first line.
 };
 
 export function day3() {
@@ -27,26 +26,25 @@ export function day3() {
 
   const lines = skiMap.split("\n");
 
+  function ignoreSkippedLines(move: Move) {
+    return function (_: string, index: number) {
+      return index % move.down === 0;
+    };
+  }
+
   function processLine(move: Move) {
     return function (progress: Progress, line: string): Progress {
-      if (progress.skipCountDown > 0) {
-        // We're doing "Down 2" or something like that, so skip this line and decrement the skip counter.
-        return { ...progress, skipCountDown: progress.skipCountDown - 1 };
-      } else {
-        // We're on a line that we need to look for trees on
-        const isTree = charAt(line, progress.xPos) === "#";
-        return {
-          xPos: progress.xPos + move.right,
-          treeCount: progress.treeCount + (isTree ? 1 : 0),
-          skipCountDown: move.down - 1,
-        };
-      }
+      const isTree = charAt(line, progress.xPos) === "#";
+      return {
+        xPos: progress.xPos + move.right,
+        treeCount: progress.treeCount + (isTree ? 1 : 0),
+      };
     };
   }
 
   const part1Move = { right: 3, down: 1 };
 
-  const part1Result = lines.reduce(processLine(part1Move), initProgress);
+  const part1Result = lines.reduce(processLine(part1Move), startPosition);
   console.log("Day 3 Part 1:", part1Result.treeCount);
 
   const part2Moves: Move[] = [
@@ -58,8 +56,13 @@ export function day3() {
   ];
 
   const part2Result = part2Moves
-    .map((move) => lines.reduce(processLine(move), initProgress))
-    .reduce((prod, progress) => prod * progress.treeCount, 1); //part 2 is only interested in the product of all the tree-counts.
+    .map((move) =>
+      lines
+        .filter(ignoreSkippedLines(move))
+        .reduce(processLine(move), startPosition)
+    )
+    .map((p) => p.treeCount)
+    .reduce(multiply, 1); //part 2 is only interested in the product of all the tree-counts.
 
   console.log("Day 3 part 2:", part2Result);
 }

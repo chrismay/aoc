@@ -1,4 +1,5 @@
 import { passwd } from "./day2_input";
+import * as _ from "lodash";
 
 type Pwent = {
   max: number;
@@ -7,7 +8,7 @@ type Pwent = {
   password: string;
 };
 
-const eq = (c: string) => (c2: string) => c === c2;
+const eq = _.curry(_.eq);
 
 export function day2(): void {
   function toPwent(line: string): Pwent {
