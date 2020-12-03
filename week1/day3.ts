@@ -26,6 +26,7 @@ export function day3() {
 
   const lines = skiMap.split("\n");
 
+  // if we're starting at row 0 and moving down e.g. 2 rows at a time, we can ignore rows 1,3,5,7 etc. 
   function ignoreSkippedLines(move: Move) {
     return function (_: string, index: number) {
       return index % move.down === 0;
