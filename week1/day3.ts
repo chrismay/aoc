@@ -1,5 +1,25 @@
 import { skiMap } from "./day3_input";
 
+// describes the kind of moves we can make on the map. They're always "down Y, right X".
+type Move = {
+  right: number;
+  down: number;
+};
+
+// Holds our progress through the map.
+type Progress = {
+  xPos: number; // How far right have we travelled so far?
+  countTrees: number; // how many trees have we seen so far?
+  skipCount: number; // Do we need to skip this line (e.g. because we're doing "down 2")?
+};
+
+const initProgress: Progress = {
+  // always start in the top left corner.
+  xPos: 0,
+  countTrees: 0,
+  skipCount: 0, // never skip the first line.
+};
+
 export function day3() {
   function charAt(line: string, xPos: number) {
     return line.substr(xPos % line.length, 1); // If you read off the end of the line, just start again at the beginning.
@@ -7,37 +27,17 @@ export function day3() {
 
   const lines = skiMap.split("\n");
 
-  type Progress = {
-    xPos: number; // whereabouts on the current line are we?
-    countTrees: number; // how many trees have we seen so far?
-    skipCount: number; // Do we need to skip this line?
-  };
-
-  const initProgress: Progress = { // always start in the top left corner.
-    xPos: 0,
-    countTrees: 0,
-    skipCount: 0,// never skip the first line.
-  };
-
-  type Move = {
-    right: number;
-    down: number;
-  };
-
   function nextMove(move: Move) {
     return function (progress: Progress, line: string): Progress {
       if (progress.skipCount > 0) {
-        // We're doing "Down 2" or something like that, so skip one line
-        return {
-          xPos: progress.xPos,
-          countTrees: progress.countTrees,
-          skipCount: progress.skipCount - 1,
-        };
-      } else { // We're on a line that we need to look for trees on 
+        // We're doing "Down 2" or something like that, so skip this line and decrement the skip counter.
+        return { ...progress, skipCount: progress.skipCount - 1 };
+      } else {
+        // We're on a line that we need to look for trees on
         const isTree = charAt(line, progress.xPos) === "#";
         return {
           xPos: progress.xPos + move.right,
-          countTrees: isTree ? progress.countTrees + 1 : progress.countTrees,
+          countTrees: progress.countTrees + (isTree ? 1 : 0),
           skipCount: move.down - 1,
         };
       }
