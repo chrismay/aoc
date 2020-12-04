@@ -32,7 +32,7 @@ export function day4() {
   };
 
   /*
-  byr (Birth Year) - four digits; at least 1920 and at most 2002.
+byr (Birth Year) - four digits; at least 1920 and at most 2002.
 iyr (Issue Year) - four digits; at least 2010 and at most 2020.
 eyr (Expiration Year) - four digits; at least 2020 and at most 2030.
 hgt (Height) - a number followed by either cm or in:
@@ -42,11 +42,14 @@ hcl (Hair Color) - a # followed by exactly six characters 0-9 or a-f.
 ecl (Eye Color) - exactly one of: amb blu brn gry grn hzl oth.
 pid (Passport ID) - a nine-digit number, including leading zeroes.
 cid (Country ID) - ignored, missing or not.
-  */
-  function validData(passData: PassData) {
-    type PassportValidator = (pd: PassData) => boolean;
-    function validHeight(pd: PassData) {
-      const [_, height, unit] = pd.hgt.split(/([0-9]+)([a-z]+)/);
+*/
+  type PassportValidator = (pd: PassData) => boolean;
+  function and(a: boolean, b: boolean) {
+    return a && b;
+  }
+  function validData(passData: PassData): boolean {
+    function validHeight(pd: PassData): boolean {
+      const [, height, unit] = pd.hgt.split(/([0-9]+)([a-z]+)/);
 
       if (unit === "cm") return inRange(+height, 150, 194);
 
@@ -59,14 +62,14 @@ cid (Country ID) - ignored, missing or not.
       (pd) => inRange(+pd.iyr, 2010, 2021),
       (pd) => inRange(+pd.eyr, 2020, 2031),
       validHeight,
-      (pd) => (pd.hcl.match(/#[0-9a-f]{6}/)?.length || 0) > 0,
+      (pd) => /#[0-9a-f]{6}/.test(pd.hcl),
       (pd) =>
         ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"].includes(pd.ecl),
-      (pd) => pd.pid.length === 9,
+      (pd) => /^[0-9]{9}$/.test(pd.pid),
       (pd) => +pd.pid > 0,
     ];
 
-    return validators.reduce((valid, v) => valid && v(passData), true);
+    return validators.map((v) => v(passData)).reduce(and, true);
   }
 
   const validPassports = passData.filter(fieldsPresent);
