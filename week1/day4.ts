@@ -69,7 +69,9 @@ cid (Country ID) - ignored, missing or not.
     return validators.reduce((valid, v) => valid && v(passData), true);
   }
 
-  const validPassports = passData.filter(fieldsPresent).filter(validData);
+  const validPassports = passData.filter(fieldsPresent);
 
-  console.log(validPassports.length);
+  console.log("Day 4 part 1: ", validPassports.length);
+
+  console.log("Day 4 part 2: ", validPassports.filter(validData).length);
 }
