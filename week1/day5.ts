@@ -9,7 +9,7 @@ function seatID(ticket: string): number {
 }
 
 export function day5(): void {
-  const allocatedSeats = sortBy([...tickets.split("\n").map(seatID)]);
+  const allocatedSeats = sortBy(tickets.split("\n").map(seatID));
   const highestSeat = max(allocatedSeats) || 0;
   console.log("Day 5 Part 1:", highestSeat);
 
