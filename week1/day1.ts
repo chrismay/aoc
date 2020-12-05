@@ -17,7 +17,7 @@ export function day1(): void {
   );
 
   const part1 = pairs[2020]; // answer to part 1 is the two values that add to 2020
-  console.log("Day 1 Part 1: ", ...part1, part1.reduce(multiply));
+  console.log("Day 1 Part 1:", ...part1, part1.reduce(multiply));
 
   // find any value in the expenses list which can be added to one of the sums that we've already calculated
   // to give 2020.

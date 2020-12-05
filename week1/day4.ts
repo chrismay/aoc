@@ -53,7 +53,7 @@ export function day4() {
 
   const validPassports = passData.filter(fieldsPresent);
 
-  console.log("Day 4 part 1: ", validPassports.length);
+  console.log("Day 4 Part 1:", validPassports.length);
 
-  console.log("Day 4 part 2: ", validPassports.filter(validData).length);
+  console.log("Day 4 Part 2:", validPassports.filter(validData).length);
 }
