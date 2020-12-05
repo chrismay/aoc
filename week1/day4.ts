@@ -17,7 +17,7 @@ const presentIn = (o: unknown) => (f: string) => has(o, f);
 
 const validates = (pd: PassData) => (v: (p: PassData) => boolean) => v(pd);
 
-export function day4() {
+export function day4(): void {
   function fieldsPresent(passData: unknown): passData is PassData {
     const mandatoryFields = ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
     return every(mandatoryFields, presentIn(passData));

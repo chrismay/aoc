@@ -19,14 +19,14 @@ const startPosition: Progress = {
   treeCount: 0,
 };
 
-export function day3() {
+export function day3(): void {
   function charAt(line: string, xPos: number) {
     return line.substr(xPos % line.length, 1); // If you read off the end of the line, just start again at the beginning.
   }
 
   const lines = skiMap.split("\n");
 
-  // if we're starting at row 0 and moving down e.g. 2 rows at a time, we can ignore rows 1,3,5,7 etc. 
+  // if we're starting at row 0 and moving down e.g. 2 rows at a time, we can ignore rows 1,3,5,7 etc.
   function ignoreSkippedLines(move: Move) {
     return function (_: string, index: number) {
       return index % move.down === 0;
