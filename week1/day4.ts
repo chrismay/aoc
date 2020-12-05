@@ -38,7 +38,7 @@ export function day4() {
       (pd) => inRange(+pd.iyr, 2010, 2021),
       (pd) => inRange(+pd.eyr, 2020, 2031),
       (pd) => validHeight(pd),
-      (pd) => /#[0-9a-f]{6}/.test(pd.hcl),
+      (pd) => /^#[0-9a-f]{6}$/.test(pd.hcl),
       (pd) => allowedEyeColours.includes(pd.ecl),
       (pd) => /^[0-9]{9}$/.test(pd.pid),
     ];
