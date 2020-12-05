@@ -1,4 +1,4 @@
-import { max, min, sortBy } from "lodash";
+import { head, max, min, sortBy, tail } from "lodash";
 import { tickets } from "./day5_inputs";
 
 function seatId(ticket: string): number {
@@ -13,9 +13,9 @@ export function day5(): void {
 
   const lowestSeat = min(allocatedSeats) || 0;
 
-  const firstFreeSeat =
-    lowestSeat +
-    allocatedSeats.findIndex((seatId, idx) => seatId !== idx + lowestSeat);
+  function findFreeSeat(seats: number[], curr: number): number {
+    return head(seats) !== curr ? curr : findFreeSeat(tail(seats), ++curr);
+  }
 
-  console.log("Day 5 Part 2:", firstFreeSeat);
+  console.log("Day 5 Part 2:", findFreeSeat(allocatedSeats, lowestSeat));
 }
