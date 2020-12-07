@@ -1,79 +1,94 @@
-import { fromPairs, uniq } from "lodash";
+import { add, fromPairs, sum, uniq } from "lodash";
 import { rules } from "./day7_input";
 
-type RulesDictionary = { [key: string]: string[] };
+type ColourMap = { [key: string]: string[] };
 function day7Part1() {
-  const parsedRules: [string, string[]][] = rules
+  //Source: dark orange bags contain 3 bright white bags, 1 muted yellow bag
+  // ["dark orange",["bright white","muted yellow"]]
+  // ["pale blue",["bright white","light green"]]
+  const containingMap: [string, string[]][] = rules
     .split("\n")
     .map((line) => line.split(" bags contain "))
     .map(([container, contained]) => [
       container,
-      contained.replace(".", "").split(","),
+      contained
+        .replace(".", "")
+        .split(",")
+        .filter((content) => content !== "no other bags")
+        .map((bagSpec) => (bagSpec.match(/^ *[\d]+ (.*) bags?/) || [])[1]),
     ]);
 
-  const containedByMap = parsedRules.reduce(
-    (acc: RulesDictionary, [container, contained]) => {
-      const bags = contained
-        .map((c) => c.replace(/^ *[\d]+ (.*) bags?/, "$1"))
-        .filter((b) => b !== "no other bags");
-      //   console.log(container, bags);
+  // Invert the map, so that instead of container->[contained], it holds contained->[container]
+  // {
+  //  "bright white":["dark orange", "pale blue"]
+  //  "muted yellow":["dark orange"]
+  //  "light green":["pale blue"]
+  //  }
+  const containedByMap: ColourMap = containingMap.reduce(
+    (acc: ColourMap, [container, contained]) => {
       const containedBy = fromPairs(
-        bags.map((b) => [b, [container, ...(acc[b] || [])]])
+        contained.map((b) => [b, [container, ...(acc[b] || [])]])
       );
       return { ...acc, ...containedBy };
     },
     {}
   );
 
+  // recurse through the map finding the colours that are contained by the target colour.
   function findContainersRec(
-    containedByMap: RulesDictionary,
+    containedByMap: ColourMap,
     targetColour: string,
     acc: string[]
   ): string[] {
-    const containedByTarget = containedByMap[targetColour] || [];
-    const nextLevelDown = containedByTarget.flatMap((c: string) =>
-      findContainersRec(containedByMap, c, acc)
-    );
-    // console.log(
-    //   "finding containers of " + targetColour + " found " + nextLevelDown
-    // );
-    return [...acc, targetColour, ...nextLevelDown];
+    const containedByTarget = (
+      containedByMap[targetColour] || []
+    ).flatMap((c: string) => findContainersRec(containedByMap, c, acc));
+
+    return [...acc, targetColour, ...containedByTarget];
   }
 
   const targetColour = "shiny gold";
+
   const colours = uniq(
     findContainersRec(containedByMap, targetColour, [])
   ).filter((c) => c !== targetColour);
   console.log("Day 7 Part 1", colours.length);
 }
 
+type CountColour = { count: number; colour: string };
+
 function day7Part2() {
-  const parsedRules: [string, string[]][] = rules
+  // Source: dark orange bags contain 3 bright white bags, 1 muted yellow bag
+  // ["dark orage",[{count:3, colour:"bright white"}, {count:1, colour:"muted yellow"}]]
+  const parsedRules: [string, CountColour[]][] = rules
     .split("\n")
     .map((line) => line.split(" bags contain "))
     .map(([container, contained]) => [
       container,
-      contained.replace(".", "").split(","),
+      contained
+        .replace(".", "")
+        .split(",")
+        .filter((content) => content !== "no other bags")
+        .map((bag) => bag.match(/([\d]+) (.*) bag/) || [])
+        .map(([, c, colour]) => ({ count: +c, colour })),
     ]);
 
-  const containsMap = fromPairs(parsedRules);
+  type ContainsMap = { [key: string]: CountColour[] };
+  const containsMap: ContainsMap = fromPairs(parsedRules);
 
   function countContainedRec(
-    containsMap: RulesDictionary,
-    colour: string,
+    containsMap: ContainsMap,
+    targetColour: string,
     total: number
   ): number {
-    const contents = (containsMap[colour] || []).filter(
-      (c: string) => c !== "no other bags"
+    const contents = containsMap[targetColour] || [];
+
+    const subContentTotals = contents.map(
+      ({ count, colour }) =>
+        // 1 for the current colour, plus however many bags it contains.
+        count * (1 + countContainedRec(containsMap, colour, total))
     );
-    //console.log("countContainedRed", colour, total, contents);
-    const subContentTotal = contents.map((c: string) => {
-      const [, count, col] = c.match(/([\d]+) (.*) bag/) || [];
-      return +count * (1 + countContainedRec(containsMap, col, total));
-    });
-    return (
-      total + subContentTotal.reduce((acc: number, t: number) => acc + t, 0)
-    );
+    return total + sum(subContentTotals);
   }
 
   console.log("Day 7 Part 2", countContainedRec(containsMap, "shiny gold", 0));
