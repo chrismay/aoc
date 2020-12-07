@@ -1,14 +1,13 @@
-import { add, fromPairs, sum, uniq } from "lodash";
+import { fromPairs, sum, uniq } from "lodash";
 import { rules } from "./day7_input";
 
 type Colour = string;
 type ColourMap = { [key: string]: Colour[] }; // index signatures can't be type aliases. Should be container: Colour
+type CountColour = { count: number; colour: Colour };
+type CountColourMap = { [container: string]: CountColour[] }; // index signatures can't be type aliases. Should be container: Colour
 
-function day7Part1() {
-  //Source: dark orange bags contain 3 bright white bags, 1 muted yellow bag
-  // ["dark orange",["bright white","muted yellow"]]
-  // ["pale blue",["bright white","light green"]]
-  const containingMap: [Colour, Colour[]][] = rules
+export function day7(): void {
+  const countColours: [Colour, CountColour[]][] = rules
     .split("\n")
     .map((line) => line.split(" bags contain "))
     .map(([container, contained]) => [
@@ -17,7 +16,8 @@ function day7Part1() {
         .replace(".", "")
         .split(",")
         .filter((content) => content !== "no other bags")
-        .map((bagSpec) => (bagSpec.match(/^ *[\d]+ (.*) bags?/) || [])[1]),
+        .map((bag) => bag.match(/([\d]+) (.*) bag/) || [])
+        .map(([, c, colour]) => ({ count: +c, colour })),
     ]);
 
   // Invert the map, so that instead of container->[contained], it holds contained->[container]
@@ -26,10 +26,13 @@ function day7Part1() {
   //  "muted yellow":["dark orange"]
   //  "light green":["pale blue"]
   //  }
-  const containedByMap: ColourMap = containingMap.reduce(
+  const containedByMap: ColourMap = countColours.reduce(
     (acc: ColourMap, [container, contained]) => {
       const containedBy = fromPairs(
-        contained.map((b) => [b, [container, ...(acc[b] || [])]])
+        contained.map(({ colour }) => [
+          colour,
+          [container, ...(acc[colour] || [])],
+        ])
       );
       return { ...acc, ...containedBy };
     },
@@ -55,48 +58,26 @@ function day7Part1() {
     findContainersRec(containedByMap, targetColour, [])
   ).filter((c) => c !== targetColour);
   console.log("Day 7 Part 1", colours.length);
-}
-
-type CountColour = { count: number; colour: Colour };
-type ContainsMap = { [container: string]: CountColour[] }; // index signatures can't be type aliases. Should be container: Colour
-
-function day7Part2() {
-  // Source: dark orange bags contain 3 bright white bags, 1 muted yellow bag
-  // ["dark orage",[{count:3, colour:"bright white"}, {count:1, colour:"muted yellow"}]]
-  const parsedRules: [Colour, CountColour[]][] = rules
-    .split("\n")
-    .map((line) => line.split(" bags contain "))
-    .map(([container, contained]) => [
-      container,
-      contained
-        .replace(".", "")
-        .split(",")
-        .filter((content) => content !== "no other bags")
-        .map((bag) => bag.match(/([\d]+) (.*) bag/) || [])
-        .map(([, c, colour]) => ({ count: +c, colour })),
-    ]);
-
-  const containsMap: ContainsMap = fromPairs(parsedRules);
 
   function countContainedRec(
-    containsMap: ContainsMap,
+    CountColourMap: CountColourMap,
     targetColour: Colour,
     total: number
   ): number {
-    const contents = containsMap[targetColour] || [];
+    const contents = CountColourMap[targetColour] || [];
 
     const subContentTotals = contents.map(
       ({ count, colour }) =>
         // 1 for the current colour, plus however many bags it contains.
-        count * (1 + countContainedRec(containsMap, colour, total))
+        count * (1 + countContainedRec(CountColourMap, colour, total))
     );
     return total + sum(subContentTotals);
   }
 
-  console.log("Day 7 Part 2", countContainedRec(containsMap, "shiny gold", 0));
-}
+  const countColourMap: CountColourMap = fromPairs(countColours);
 
-export function day7(): void {
-  day7Part1();
-  day7Part2();
+  console.log(
+    "Day 7 Part 2",
+    countContainedRec(countColourMap, "shiny gold", 0)
+  );
 }
