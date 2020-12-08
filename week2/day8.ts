@@ -27,11 +27,38 @@ function modifiedPrograms(program: string[]): string[][] {
   return [...mapOpCode("nop", "jmp"), ...mapOpCode("jmp", "nop")];
 }
 
-export function day8() {
-  function executeInstruction(
-    program: string[],
-    state: ProgramState
-  ): ProgramState {
+function loopGuard(
+  instruction: (state: ProgramState) => ProgramState
+): (st: TrackingProgramState) => TrackingProgramState {
+  return (state) => {
+    if (state.visitedInstructions[state.instructionPointer]) {
+      return { ...state, halt: "ERR" };
+    }
+    const visitedInstructions = {
+      ...state.visitedInstructions,
+      [state.instructionPointer]: true,
+    };
+
+    return { ...instruction(state), visitedInstructions };
+  };
+}
+
+function terminationGuard(
+  instruction: (state: ProgramState) => ProgramState,
+  programLength: number
+): (st: ProgramState) => ProgramState {
+  return (state) => {
+    if (state.instructionPointer === programLength) {
+      return { ...state, halt: "OK" };
+    }
+    return instruction(state);
+  };
+}
+
+function executeInstruction(
+  program: string[]
+): (st: ProgramState) => ProgramState {
+  return (state) => {
     const [opCode, arg] = program[state.instructionPointer].split(" ");
     switch (opCode) {
       case "nop":
@@ -53,72 +80,33 @@ export function day8() {
       default:
         throw "unrecognised instruction";
     }
-  }
+  };
+}
 
-  const initialState: ProgramState & {
-    visitedInstructions: { [address: number]: boolean };
-  } = {
+export function day8() {
+  const initialState: TrackingProgramState = {
     accumulator: 0,
     instructionPointer: 0,
     visitedInstructions: {},
     halt: "NO",
   };
 
-  function loopGuard(
-    instruction: (state: ProgramState) => ProgramState,
-    state: TrackingProgramState
-  ): TrackingProgramState {
-    if (state.visitedInstructions[state.instructionPointer]) {
-      return { ...state, halt: "ERR" };
-    }
-    const visitedInstructions = {
-      ...state.visitedInstructions,
-      [state.instructionPointer]: true,
-    };
-
-    return { ...instruction(state), visitedInstructions };
-  }
-
-  function terminationGuard(
-    instruction: (state: ProgramState) => ProgramState,
-    state: ProgramState,
-    programLength: number
-  ): ProgramState {
-    if (state.instructionPointer === programLength) {
-      return { ...state, halt: "OK" };
-    }
-    return instruction(state);
-  }
-
-  function evaluate(
-    program: string[],
-    state: TrackingProgramState
-  ): TrackingProgramState {
+  function evaluate(program: string[]): TrackingProgramState {
     return doWhile(
-      (st) =>
-        loopGuard(
-          (s) =>
-            terminationGuard(
-              (s) => executeInstruction(program, s),
-              s,
-              program.length
-            ),
-          st
-        ),
+      loopGuard(terminationGuard(executeInstruction(program), program.length)),
       (st) => st.halt === "NO",
-      state
+      initialState
     );
   }
 
   const program = day8Program.split("\n");
-  const result = evaluate(program, initialState);
+  const result = evaluate(program);
   console.log("Day 8 Part 1:", result.halt, result.accumulator);
 
   const modified = modifiedPrograms(day8Program.split("\n"));
 
-  const successful =
-    modified.find((p) => evaluate(p, initialState).halt === "OK") || [];
-  const successResult = evaluate(successful, initialState);
+  const successful = modified.find((p) => evaluate(p).halt === "OK") || [];
+  const successResult = evaluate(successful);
 
   console.log("Day 8 Part 2:", successResult.halt, successResult.accumulator);
 }
