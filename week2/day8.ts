@@ -4,12 +4,17 @@ import { day8Program, normalExit, part1Test } from "./day8_input";
 type ProgramState = {
   instructionPointer: number;
   accumulator: number;
-  halt: "NO" | "OK" | "ERR";
 };
 
-type TrackingProgramState = ProgramState & {
-  visitedInstructions: { [address: number]: boolean };
-};
+type ControlState = { halt: "NO" | "OK" | "ERR" };
+
+type ControlledProgramState = ProgramState & ControlState;
+
+type TrackingProgramState = ProgramState &
+  ControlState & {
+    visitedInstructions: { [address: number]: boolean };
+  };
+type Change<T> = (t: T) => T;
 
 function modifiedPrograms(program: string[]): string[][] {
   function mapOpCode(from: string, to: string): string[][] {
@@ -27,9 +32,7 @@ function modifiedPrograms(program: string[]): string[][] {
   return [...mapOpCode("nop", "jmp"), ...mapOpCode("jmp", "nop")];
 }
 
-function loopGuard(
-  instruction: (state: ProgramState) => ProgramState
-): (st: TrackingProgramState) => TrackingProgramState {
+function loopGuard(instruction: Change<ControlledProgramState>): Change<TrackingProgramState> {
   return (state) => {
     if (state.visitedInstructions[state.instructionPointer]) {
       return { ...state, halt: "ERR" };
@@ -39,38 +42,34 @@ function loopGuard(
       [state.instructionPointer]: true,
     };
 
-    return { ...instruction(state), visitedInstructions };
+    return { ...state, ...instruction(state), visitedInstructions };
   };
 }
 
-function terminationGuard(
-  instruction: (state: ProgramState) => ProgramState,
-  programLength: number
-): (st: ProgramState) => ProgramState {
+function terminationGuard(instruction: Change<ProgramState>, programLength: number): Change<ControlledProgramState> {
   return (state) => {
     if (state.instructionPointer === programLength) {
       return { ...state, halt: "OK" };
     }
-    return instruction(state);
+    return { ...instruction(state), halt: "NO" };
   };
 }
 
-function executeInstruction(
-  program: string[]
-): (st: ProgramState) => ProgramState {
+function executeInstruction(program: string[]): Change<ProgramState> {
   return (state) => {
     const [opCode, arg] = program[state.instructionPointer].split(" ");
+    const instructionPointer = 1 + state.instructionPointer;
     switch (opCode) {
       case "nop":
         return {
           ...state,
-          instructionPointer: 1 + state.instructionPointer,
+          instructionPointer,
         };
       case "acc":
         return {
           ...state,
           accumulator: state.accumulator + +arg,
-          instructionPointer: 1 + state.instructionPointer,
+          instructionPointer,
         };
       case "jmp":
         return {
@@ -103,10 +102,9 @@ export function day8() {
   const result = evaluate(program);
   console.log("Day 8 Part 1:", result.halt, result.accumulator);
 
-  const modified = modifiedPrograms(day8Program.split("\n"));
+  const successResult = modifiedPrograms(program)
+    .map(evaluate)
+    .find((s) => s.halt === "OK");
 
-  const successful = modified.find((p) => evaluate(p).halt === "OK") || [];
-  const successResult = evaluate(successful);
-
-  console.log("Day 8 Part 2:", successResult.halt, successResult.accumulator);
+  console.log("Day 8 Part 2:", successResult?.halt, successResult?.accumulator);
 }
