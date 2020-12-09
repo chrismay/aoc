@@ -30,9 +30,17 @@ function findRangeSummingTo(target: number, data: number[]) {
 export function day9() {
   const testData = day9Data.split("\n").map(toNumber);
   const windowSize = 25;
-  console.log(testData.find((v, idx) => idx >= windowSize && !verify(idx, windowSize, testData)));
+  console.log(
+    "Day 9 part 1:",
+    testData.find((v, idx) => idx >= windowSize && !verify(idx, windowSize, testData))
+  );
 
   //  findRangeSummingTo(10, [1, 2, 4, 6, 8]);
   const part2 = orderBy(findRangeSummingTo(85848519, testData));
-  console.log(part2[0], part2[part2.length - 1], part2[0] + part2[part2.length - 1]);
+  console.log(
+    "Day 9 part 2: lowest, highest, sum",
+    part2[0],
+    part2[part2.length - 1],
+    part2[0] + part2[part2.length - 1]
+  );
 }
