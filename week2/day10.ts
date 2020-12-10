@@ -1,11 +1,12 @@
-import { fromPairs, last, orderBy, toNumber } from "lodash";
+import { fromPairs, last, memoize, orderBy, toNumber } from "lodash";
 import { day10Adapters, longerAdapterList, shortAdapterList } from "./day10_input";
 
-export function day10() {
-  console.log((last(orderBy(shortAdapterList.split("\n").map(toNumber))) || 0) + 3);
+type NumberMap = { [k: number]: boolean };
+type PathCounter = (n: number, source: NumberMap, countPaths: PathCounter) => number;
 
-  console.log(orderBy(shortAdapterList.split("\n").map(toNumber)));
-  const counts = orderBy(longerAdapterList.split("\n").map(toNumber)).reduce(
+export function day10() {
+  const testDataOrdered = orderBy(day10Adapters.split("\n").map(toNumber));
+  const counts = testDataOrdered.reduce(
     (acc, n) => {
       const diff = n - acc.prev;
       if (diff === 1) return { ...acc, prev: n, ones: acc.ones + 1 };
@@ -15,33 +16,19 @@ export function day10() {
     },
     { ones: 0, twos: 0, threes: 0, prev: 0 }
   );
-  console.log(counts);
-  console.log(counts.ones * (counts.threes + 1)); // 1 three for the device's own adapter
-
-  var calculatedPaths: { [k: number]: number } = { 0: 1 };
-  const source: number[] = orderBy(longerAdapterList.split("\n").map(toNumber));
-  console.log(source);
-
-  function countPathsTo(n: number, source: { [k: number]: boolean }): number {
-    if (n < 0) return 0;
-    if (calculatedPaths[n] !== undefined) {
-      // already calculated this one
-      return calculatedPaths[n];
-    }
+  console.log("Day 10 Part 1:", counts.ones * (counts.threes + 1)); // 1 three for the device's own adapter
+  const countPathsTo: PathCounter = memoize((n, source, countPaths) => {
+    if (n === 0) return 1;
     if (!source[n]) {
-      // trying to find paths to an adapter we dont have
-      calculatedPaths[n] = 0;
       return 0;
     }
-    const pathsToMe = countPathsTo(n - 1, source) + countPathsTo(n - 2, source) + countPathsTo(n - 3, source);
-    calculatedPaths[n] = pathsToMe;
-    // console.log(pathsToMe, "paths to...", n, calculatedPaths);
-    return pathsToMe;
-  }
+    return (
+      countPaths(n - 1, source, countPaths) +
+      countPaths(n - 2, source, countPaths) +
+      countPaths(n - 3, source, countPaths)
+    );
+  });
 
-  //   const short = orderBy(shortAdapterList.split("\n").map(toNumber));
-  //   console.log(countPathsTo(last(short) || 0, short));
-  const testOrdered = orderBy(day10Adapters.split("\n").map(toNumber));
-  const test: { [k: number]: boolean } = fromPairs(testOrdered.map((n) => [n, true]));
-  console.log(countPathsTo(last(testOrdered) || 0, test));
+  const testDataMap: NumberMap = fromPairs(testDataOrdered.map((n) => [n, true]));
+  console.log("Day 10 Part 2:", countPathsTo(last(testDataOrdered) || 0, testDataMap, countPathsTo));
 }
