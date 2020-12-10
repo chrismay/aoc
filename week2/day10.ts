@@ -17,6 +17,7 @@ export function day10() {
     { ones: 0, twos: 0, threes: 0, prev: 0 }
   );
   console.log("Day 10 Part 1:", counts.ones * (counts.threes + 1)); // 1 three for the device's own adapter
+
   const countPathsTo: PathCounter = memoize((n, source, countPaths) => {
     if (n === 0) return 1;
     if (!source[n]) {
