@@ -1,6 +1,7 @@
-import { cloneDeep, eq, isEqual, memoize } from "lodash";
+import { cloneDeep, isEqual, memoize } from "lodash";
 import { doWhile } from "../util";
 import { day11Input } from "./day11_input";
+
 type Seat = "L" | "." | "#";
 type Board = Seat[][];
 type Coord = { x: number; y: number };
@@ -13,6 +14,9 @@ function lens(board: Board) {
     setSeatAt: function (coord: Coord, val: Seat): Board {
       board[coord.y][coord.x] = val;
       return board;
+    },
+    reduce: function <T>(f: (acc: T, c: Coord) => T, init: T): T {
+      return board.reduce((acc, row, y) => row.reduce((rowAcc, _, x) => f(rowAcc, { x, y }), acc), init);
     },
   };
 }
@@ -36,32 +40,19 @@ function toBoard(s: string): Board {
   return s.split("\n").map((s) => s.split("")) as Board;
 }
 
-function reduce<T>(board: Board) {
-  return function (f: (acc: T, c: Coord) => T, init: T): T {
-    var acc = init;
-    for (let x = 0; x < board[0].length; x++) {
-      for (let y = 0; y < board.length; y++) {
-        const coord = { x, y };
-        acc = f(acc, coord);
-      }
-    }
-    return acc;
-  };
-}
-
 function adjacent(coords: Coord, board: Board): Coord[] {
   const rowAbove = coords.y - 1;
   const rowBelow = coords.y + 1;
   const colBefore = coords.x - 1;
   const colAfter = coords.x + 1;
+
   const allAdjacent = [colBefore, coords.x, colAfter].map((col) =>
     [rowAbove, coords.y, rowBelow].map((row) => ({ x: col, y: row }))
   );
 
-  const onBoard = allAdjacent.map((row) =>
+  return allAdjacent.flatMap((row) =>
     row.filter(isOnBoard(board)).filter(({ x, y }) => !(x === coords.x && y === coords.y))
   );
-  return onBoard.flatMap((x) => x);
 }
 
 function isOnBoard(board: Board) {
@@ -76,17 +67,17 @@ function evolveSeatPart1(getAdjacent: (coords: Coord, board: Board) => Coord[]) 
     const current = b.getSeatAt(coord);
     if (current === ".") return ".";
     const surrounds = getAdjacent(coord, board);
-    const adjacentOccupiedSeats = surrounds.map((coord) => b.getSeatAt(coord)).filter((s) => s === "#");
+    const adjacentOccupiedSeats = surrounds.map((coord) => b.getSeatAt(coord)).filter((s) => s === "#").length;
 
-    if (current === "L" && adjacentOccupiedSeats.length === 0) return "#";
-    if (current === "#" && adjacentOccupiedSeats.length >= 4) return "L";
+    if (current === "L" && adjacentOccupiedSeats === 0) return "#";
+    if (current === "#" && adjacentOccupiedSeats >= 4) return "L";
     return current;
   };
 }
 
 function evolve(board: Board, evolveSeat: (c: Coord, b: Board) => Seat) {
   const newBoard = cloneDeep(board);
-  return reduce<Board>(board)((acc, c) => lens(acc).setSeatAt(c, evolveSeat(c, board)), newBoard);
+  return lens(board).reduce((acc, c) => lens(acc).setSeatAt(c, evolveSeat(c, board)), newBoard);
 }
 
 const directions = [
@@ -106,12 +97,10 @@ function move(from: Coord, dir: Coord): Coord {
 
 function findFirstSeat(board: Board, start: Coord, direction: Coord): Seat {
   const l = lens(board);
-  let coord = move(start, direction);
-  while (isOnBoard(board)(coord) && l.getSeatAt(coord) === ".") {
-    coord = move(coord, direction);
-  }
-  if (isOnBoard(board)(coord)) {
-    return l.getSeatAt(coord);
+  const keepSearching = (c: Coord) => isOnBoard(board)(c) && l.getSeatAt(c) === ".";
+  const endCoord = doWhile((coord) => move(coord, direction), keepSearching, move(start, direction));
+  if (isOnBoard(board)(endCoord)) {
+    return l.getSeatAt(endCoord);
   }
   return ".";
 }
@@ -148,8 +137,6 @@ export function day11() {
   console.log("Day 11 Part 1:", occupied);
 
   const evolveBoard2 = (s: State) => ({ prev: s.next, next: evolve(s.next, evolveSeatP2) });
-  // const p2 = evolveBoard(init);
-  // printBoard(evolveBoard({ next: p2.next }).next);
   const result2 = doWhile(evolveBoard2, (s) => !isEqual(s.next, s.prev), init);
   const occupied2 = result2.next.reduce(
     (count, b) => count + b.reduce((count, s) => count + (s === "#" ? 1 : 0), 0),
