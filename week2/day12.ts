@@ -1,88 +1,81 @@
-import { findIndex, isEqual } from "lodash";
-import { directions, testDirections } from "./day12_input";
+import { curry, findIndex, isEqual, memoize, range } from "lodash";
+import { directions } from "./day12_input";
 
 type Coord = { x: number; y: number };
-type State = { pos: Coord; dir: Coord };
+type State = { pos: Coord; waypointPos: Coord };
 type Direction = "N" | "S" | "E" | "W";
 type TurnDirection = "L" | "R";
 type OpCode = Direction | TurnDirection | "F";
 type Instruction = { opCode: OpCode; value: number };
+type DirectionMove = (s: State, dir: Direction, distance: number) => State;
 
-const directionsToCoords: [Direction, Coord][] = [
-  ["N", { x: 0, y: 1 }],
-  ["E", { x: 1, y: 0 }],
-  ["S", { x: 0, y: -1 }],
-  ["W", { x: -1, y: 0 }],
-];
+const eq = curry(isEqual);
 
-function coordToDirection(coord: Coord): Direction {
-  const found = directionsToCoords.find(([d, c]) => isEqual(c, coord));
-  if (found) {
-    return found[0];
-  } else {
-    throw "No direction matches coord " + coord;
-  }
-}
+const directionVector = memoize((dir: Direction) => {
+  const directionNames = ["N", "E", "S", "W"];
+  return range(0, findIndex(directionNames, eq(dir))).reduce((c) => ({ x: c.y, y: -c.x }), { x: 0, y: 1 });
+});
 
-function directionToCoord(dir: Direction): Coord {
-  const found = directionsToCoords.find(([d, c]) => d === dir);
-  if (found) {
-    return found[1];
-  } else {
-    throw "No coord matches direction " + dir;
-  }
-}
-
-function findDirectionIndex(dir: Direction): number {
-  return findIndex(directionsToCoords, ([d, c]) => d === dir);
-}
-
-function velocity(dir: Coord, speed: number): Coord {
+function multiply(dir: Coord, speed: number): Coord {
   return { x: dir.x * speed, y: dir.y * speed };
 }
-function move(pos: Coord, velocity: Coord): Coord {
-  return { x: pos.x + velocity.x, y: pos.y + velocity.y };
+function translate(fromPos: Coord, translation: Coord): Coord {
+  return { x: fromPos.x + translation.x, y: fromPos.y + translation.y };
 }
+
 function turn(currentDir: Coord, turnDir: TurnDirection, degrees: number): Coord {
   if (degrees % 90 !== 0) throw "Unexpected angle! " + degrees;
-  const rightAngles = turnDir === "R" ? Math.floor(degrees / 90) % 4 : 4 - (Math.floor(degrees / 90) % 4);
 
-  const currentCompassDir = coordToDirection(currentDir);
-  const directionIndex = (findDirectionIndex(currentCompassDir) + rightAngles) % 4;
-  return directionsToCoords[directionIndex][1];
+  const rightAngles = Math.floor(degrees / 90);
+  const turnsToMake = turnDir === "R" ? rightAngles % 4 : 4 - (rightAngles % 4);
+
+  return range(0, turnsToMake).reduce((c) => ({ x: c.y, y: -c.x }), currentDir);
 }
 
 function parseInstruction(s: string): Instruction {
   const [, op, val] = s.match(/([A-Z])([0-9]+)/) || [];
   return { opCode: op as OpCode, value: +val };
 }
-function applyInstruction(state: State, instruction: Instruction): State {
-  //console.log(instruction, state);
-  switch (instruction.opCode) {
-    case "N":
-    case "S":
-    case "E":
-    case "W": {
-      const tranlation = velocity(directionToCoord(instruction.opCode), instruction.value);
-      return { ...state, pos: move(state.pos, tranlation) };
+
+function applyInstruction(directionInstruction: DirectionMove) {
+  return function (state: State, instruction: Instruction): State {
+    const { opCode, value } = instruction;
+    //console.log(instruction, state);
+    switch (opCode) {
+      case "N":
+      case "S":
+      case "E":
+      case "W":
+        return directionInstruction(state, opCode, value);
+
+      case "L":
+      case "R":
+        return { ...state, waypointPos: turn(state.waypointPos, opCode, value) };
+      case "F":
+        return { ...state, pos: translate(state.pos, multiply(state.waypointPos, value)) };
     }
-    case "L":
-    case "R": {
-      return { ...state, dir: turn(state.dir, instruction.opCode, instruction.value) };
-    }
-    case "F": {
-      return { ...state, pos: move(state.pos, velocity(state.dir, instruction.value)) };
-    }
-  }
+  };
 }
+
+function part1DirectionInstruction(state: State, dir: Direction, distance: number) {
+  return { ...state, pos: translate(state.pos, multiply(directionVector(dir), distance)) };
+}
+function part2DirectionInstruction(state: State, dir: Direction, distance: number) {
+  return { ...state, waypointPos: translate(state.waypointPos, multiply(directionVector(dir), distance)) };
+}
+
 function manhattanDistance(pos: Coord) {
   return Math.abs(pos.x) + Math.abs(pos.y);
 }
 
 export function day12() {
   const instructions = directions.split("\n").map(parseInstruction);
-  //  console.log(instructions);
-  const start: State = { pos: { x: 0, y: 0 }, dir: directionToCoord("E") };
-  const end = instructions.reduce(applyInstruction, start);
-  console.log(manhattanDistance(end.pos));
+
+  const start: State = { pos: { x: 0, y: 0 }, waypointPos: { x: 1, y: 0 } };
+  const endPart1 = instructions.reduce(applyInstruction(part1DirectionInstruction), start);
+  console.log("Day 12 part 1:", manhattanDistance(endPart1.pos));
+
+  const startPart2: State = { pos: { x: 0, y: 0 }, waypointPos: { x: 10, y: 1 } };
+  const endPart2 = instructions.reduce(applyInstruction(part2DirectionInstruction), startPart2);
+  console.log("Day 12 part 1:", manhattanDistance(endPart2.pos));
 }
