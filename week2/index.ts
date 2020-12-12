@@ -5,3 +5,4 @@ export { day9 } from "./day9";
 export { day10 } from "./day10";
 export { day11 } from "./day11";
 export { day12 } from "./day12";
+export {day12p2} from "./day12_part2"
