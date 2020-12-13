@@ -46,43 +46,28 @@ export function day13() {
 
   console.log(part2);
 
-  function bruteForceModInverse(f: (n: number) => number, max: number): number {
-    const result = findIndex(range(0, max), (i) => {
-      //      console.log(`testing ${i} : ${f(i)}`);
-      return f(i) === 0;
+  function bruteForceModInverse(f: (n: number) => boolean, max: number): number {
+    return findIndex(range(0, max), (i) => {
+      return f(i);
     });
-    //  console.log(`f(${result}) = 0`);
-    return result;
   }
 
-  function printConstraint(interval: number, offset: number, input: number[][]) {
-    //console.log(`>x === ${interval - offset} ( mod ${interval})`);
-
+  function findCRTTerms(interval: number, offset: number, input: number[][]) {
     const otherCoefficients = input.filter(([i]) => interval !== i).map(([i]) => i);
-
-    //console.log(`(${otherCoefficients.join("*")} * N )(mod ${interval}) = ${offset}`);
     const product = otherCoefficients.reduce((x, y) => x * y);
-    //console.log(`(${product} * N) (mod ${interval}) - ${interval - offset}= 0`);
     const inverse = bruteForceModInverse(
-      (x) => (((product * x) % interval) - (interval - offset)) % interval,
+      (x) => (((product * x) % interval) - (interval - offset)) % interval === 0,
       interval
     );
-    // console.log(`term=  ${product} * ${inverse} = ${product * inverse}`);
-    //console.log("");
 
     return product * inverse;
   }
 
-  console.log(Date.now());
-  const intervalProduct = part2.departures.map(([interval, offset]) => interval).reduce(multiply);
+  const intervalProduct = part2.departures.map(([interval]) => interval).reduce(multiply);
+  const start = Date.now();
   const elements = part2.departures
-    .map(([interval, offset]) => printConstraint(interval, offset, part2.departures))
+    .map(([interval, offset]) => findCRTTerms(interval, offset, part2.departures))
     .reduce(add);
-  console.log(elements);
-  console.log(elements % intervalProduct);
-  console.log(Date.now());
-
-  //   console.log(3417 % 17);
-  //   console.log(3417 % 13, 13 - 2);
-  //   console.log(3417 % 19, 19 - 3);
+  console.log("Day 13 Part 2:", elements % intervalProduct);
+  console.log(`in ${Date.now() - start}ms`);
 }
