@@ -16,7 +16,6 @@ function parseInput(input: string) {
 function findNearest(target: number) {
   return function (acc: { nearestId: number; diff: number }, curr: number) {
     const diff = curr - (target % curr);
-    console.log(target, curr, diff);
     if (diff < acc.diff) {
       return { nearestId: curr, diff };
     } else {
@@ -37,37 +36,34 @@ function parseInputPart2(input: string) {
   };
 }
 
+// modulo function that always returns positive values
+function absMod(val: number, mod: number): number {
+  return ((val % mod) + mod) % mod;
+}
+
 export function day13() {
-  //   const part1 = parseInput(day13Input);
-  //   const closestDeparture = part1.departures.reduce(findNearest(part1.target), { nearestId: -1, diff: part1.target });
-  //   console.log(closestDeparture.nearestId * closestDeparture.diff);
+  const part1 = parseInput(day13Input);
+  const closestDeparture = part1.departures.reduce(findNearest(part1.target), { nearestId: -1, diff: part1.target });
+  console.log("Day 13 Part 1:", closestDeparture.nearestId * closestDeparture.diff);
 
   const part2 = parseInputPart2(day13Input);
 
-  console.log(part2);
-
-  function bruteForceModInverse(f: (n: number) => boolean, max: number): number {
-    return findIndex(range(0, max), (i) => {
-      return f(i);
-    });
+  function bruteForceModInverse(factor: number, modulus: number, remainder: number): number {
+    return findIndex(range(0, modulus), (x) => (factor * x) % modulus === absMod(remainder, modulus));
   }
 
-  function findCRTTerms(interval: number, offset: number, input: number[][]) {
-    const otherCoefficients = input.filter(([i]) => interval !== i).map(([i]) => i);
-    const product = otherCoefficients.reduce((x, y) => x * y);
-    const inverse = bruteForceModInverse(
-      (x) => (((product * x) % interval) - (interval - offset)) % interval === 0,
-      interval
-    );
+  function findCRTTerms(interval: number, offset: number, allIntervalsProduct: number) {
+    const product = allIntervalsProduct / interval;
+    const inverse = bruteForceModInverse(product, interval, interval - offset);
 
     return product * inverse;
   }
 
   const intervalProduct = part2.departures.map(([interval]) => interval).reduce(multiply);
-  const start = Date.now();
-  const elements = part2.departures
-    .map(([interval, offset]) => findCRTTerms(interval, offset, part2.departures))
+
+  const result = part2.departures
+    .map(([interval, offset]) => findCRTTerms(interval, offset, intervalProduct))
     .reduce(add);
-  console.log("Day 13 Part 2:", elements % intervalProduct);
-  console.log(`in ${Date.now() - start}ms`);
+
+  console.log("Day 13 Part 2:", result % intervalProduct);
 }
