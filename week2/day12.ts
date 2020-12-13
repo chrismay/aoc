@@ -24,7 +24,7 @@ function translate(fromPos: Coord, translation: Coord): Coord {
 }
 
 function turn(currentDir: Coord, turnDir: TurnDirection, degrees: number): Coord {
-  if (degrees % 90 !== 0) throw "Unexpected angle! " + degrees;
+  if (degrees % 90 !== 0) throw "Unexpected angle:" + degrees;
 
   const rightAngles = Math.floor(degrees / 90);
   const turnsToMake = turnDir === "R" ? rightAngles % 4 : 4 - (rightAngles % 4);
@@ -51,6 +51,7 @@ function applyInstruction(directionInstruction: DirectionMove) {
       case "L":
       case "R":
         return { ...state, waypointPos: turn(state.waypointPos, opCode, value) };
+
       case "F":
         return { ...state, pos: translate(state.pos, multiply(state.waypointPos, value)) };
     }
@@ -69,13 +70,14 @@ function manhattanDistance(pos: Coord) {
 }
 
 export function day12() {
+  const origin = { x: 0, y: 0 };
   const instructions = directions.split("\n").map(parseInstruction);
 
-  const start: State = { pos: { x: 0, y: 0 }, waypointPos: { x: 1, y: 0 } };
+  const start: State = { pos: origin, waypointPos: directionVector("E") };
   const endPart1 = instructions.reduce(applyInstruction(part1DirectionInstruction), start);
   console.log("Day 12 part 1:", manhattanDistance(endPart1.pos));
 
-  const startPart2: State = { pos: { x: 0, y: 0 }, waypointPos: { x: 10, y: 1 } };
+  const startPart2: State = { pos: origin, waypointPos: { x: 10, y: 1 } };
   const endPart2 = instructions.reduce(applyInstruction(part2DirectionInstruction), startPart2);
   console.log("Day 12 part 1:", manhattanDistance(endPart2.pos));
 }
