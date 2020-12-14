@@ -32,7 +32,7 @@ function parseInputPart2(input: string) {
     departures: line2
       .split(",")
       .map((n, i) => [toNumber(n), i])
-      .filter(([n, i]) => isFinite(n)),
+      .filter(([n]) => isFinite(n)),
   };
 }
 
@@ -41,7 +41,7 @@ function absMod(val: number, mod: number): number {
   return ((val % mod) + mod) % mod;
 }
 
-export function day13() {
+export function day13(): void {
   const part1 = parseInput(day13Input);
   const closestDeparture = part1.departures.reduce(findNearest(part1.target), { nearestId: -1, diff: part1.target });
   console.log("Day 13 Part 1:", closestDeparture.nearestId * closestDeparture.diff);

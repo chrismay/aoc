@@ -1,5 +1,5 @@
 import { doWhile } from "../util";
-import { day8Program, normalExit, part1Test } from "./day8_input";
+import { day8Program } from "./day8_input";
 
 type ProgramState = {
   instructionPointer: number;
@@ -82,7 +82,7 @@ function executeInstruction(program: string[]): Change<ProgramState> {
   };
 }
 
-export function day8() {
+export function day8(): void {
   const initialState: TrackingProgramState = {
     accumulator: 0,
     instructionPointer: 0,

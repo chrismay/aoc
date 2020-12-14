@@ -69,7 +69,7 @@ function manhattanDistance(pos: Coord) {
   return Math.abs(pos.x) + Math.abs(pos.y);
 }
 
-export function day12() {
+export function day12(): void {
   const origin = { x: 0, y: 0 };
   const instructions = directions.split("\n").map(parseInstruction);
 

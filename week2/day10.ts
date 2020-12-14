@@ -1,5 +1,5 @@
 import { fromPairs, last, memoize, orderBy, toNumber } from "lodash";
-import { day10Adapters, longerAdapterList, shortAdapterList } from "./day10_input";
+import { day10Adapters } from "./day10_input";
 
 type NumberMap = { [k: number]: boolean };
 type PathCounter = (n: number, source: NumberMap, countPaths: PathCounter) => number;

@@ -21,21 +21,6 @@ function lens(board: Board) {
   };
 }
 
-function printBoard(board: Board) {
-  const rowLen = board[0].length;
-  const cols = board.length;
-  console.log("board", rowLen, "x", cols);
-  console.log(
-    board.map((row, idx) => {
-      if (row.length !== rowLen) {
-        console.log("Unexpected row length!", idx, row.length);
-      }
-      const r = row.join(" ");
-      return r;
-    })
-  );
-}
-
 function toBoard(s: string): Board {
   return s.split("\n").map((s) => s.split("")) as Board;
 }
@@ -124,7 +109,7 @@ function evolveSeatP2(coord: Coord, board: Board): Seat {
 }
 type State = { prev?: Board; next: Board };
 
-export function day11() {
+export function day11(): void {
   const day11Board: Board = toBoard(day11Input);
   const getAdjacent = memoize(adjacent);
   const evolveSeatP1 = evolveSeatPart1(getAdjacent);

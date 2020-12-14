@@ -69,7 +69,7 @@ function applyP2Instruction(state: State, instruction: string): State {
   }
 }
 
-export function day14() {
+export function day14(): void {
   const program = day14program.split("\n");
   const result = program.reduce(applyInstruction, { mem: {}, mask: "" });
   console.log("Day 14 Part 1:", sum(values(result.mem)));

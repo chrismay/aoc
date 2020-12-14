@@ -27,7 +27,7 @@ function findRangeSummingTo(target: number, data: number[]) {
   return groupWithMatch.find((g) => g.reduce(add, 0) === target);
 }
 
-export function day9() {
+export function day9(): void {
   const testData = day9Data.split("\n").map(toNumber);
   const windowSize = 25;
   console.log(
