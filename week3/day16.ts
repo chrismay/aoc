@@ -71,7 +71,7 @@ function addPossibilities(
   return addPossibilities(restOfFields, possSoFar);
 }
 
-export function day16() {
+export function day16(): void {
   const { fieldDefinitions, yourTicket, otherTickets } = parseInput(ticketData);
 
   console.log("Day 16 Part 1:", sum(otherTickets.flatMap((t) => findInvalidValues(t, fieldDefinitions))));
