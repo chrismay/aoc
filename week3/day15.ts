@@ -37,11 +37,8 @@ function start(nums: number[]): State {
 
 export function day15(): void {
   const p1 = doWhile(turn, (state) => state.turn !== 2021, start([12, 1, 16, 3, 11, 0]));
-  //  console.log(p1.turn - 1, p1.lastSpoken);
   console.log("Day 15 Part 1:", p1.lastSpoken);
   const stime = Date.now();
   const p2 = doWhile(turn, (state) => state.turn !== 30000001, start([12, 1, 16, 3, 11, 0]));
-  // console.log("In " + (Date.now() - stime));
-  // console.log(p2.turn - 1, p2.lastSpoken, p2.maxSpoken);
   console.log("Day 15 Part 2:", p2.lastSpoken);
 }
