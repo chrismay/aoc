@@ -1,8 +1,14 @@
-import { multiply, orderBy, range, sum, toNumber, toPairs, uniq, values } from "lodash";
+import { every, has, multiply, orderBy, range, some, sum, toNumber, toPairs } from "lodash";
 import { ticketData } from "./day16_input";
 
 type Range = { min: number; max: number };
 type FieldDefinition = [string, Range[]];
+function fieldName(fd: FieldDefinition) {
+  return fd[0];
+}
+function rules(fd: FieldDefinition) {
+  return fd[1];
+}
 
 function toRange(s: string): Range {
   const [min, max] = s.split("-");
@@ -25,20 +31,12 @@ function parseInput(input: string) {
   return { fieldDefinitions, yourTicket, otherTickets };
 }
 
-function rangeContains(n: number) {
-  return function (r: Range): boolean {
-    return n <= r.max && n >= r.min;
-  };
-}
-
-function isValidValue(n: number, fd: FieldDefinition): boolean {
-  return fd[1].find((r) => rangeContains(n)(r)) !== undefined;
+function isValidValue(fd: FieldDefinition, n: number): boolean {
+  return some(rules(fd), (r) => n <= r.max && n >= r.min);
 }
 
 function isValidForAtLeastOneField(n: number, fieldDefinitions: FieldDefinition[]): boolean {
-  const allRanges = fieldDefinitions.flatMap((fd) => fd[1]);
-  const f = allRanges.find(rangeContains(n));
-  return f !== undefined;
+  return some(fieldDefinitions, (fd) => isValidValue(fd, n));
 }
 
 function findInvalidValues(ticket: number[], fieldDefinitions: FieldDefinition[]): number[] {
@@ -47,7 +45,7 @@ function findInvalidValues(ticket: number[], fieldDefinitions: FieldDefinition[]
 
 function allValuesAreValid(fieldPosition: number, field: FieldDefinition, tickets: number[][]): boolean {
   const fieldValuesInPosition = tickets.map((t) => t[fieldPosition]);
-  return fieldValuesInPosition.find((v) => !isValidValue(v, field)) === undefined;
+  return every(fieldValuesInPosition, (v) => isValidValue(field, v));
 }
 
 function findValidFieldPositions(field: FieldDefinition, tickets: number[][]) {
@@ -57,18 +55,22 @@ function findValidFieldPositions(field: FieldDefinition, tickets: number[][]) {
 
 function addPossibilities(
   remainingFieldPositions: [FieldDefinition, number[]][],
-  combinationsSoFar: { [fieldName: string]: number }[]
-): { [fieldName: string]: number }[] {
+  combinationsSoFar: { [position: number]: string }[]
+): { [position: number]: string }[] {
   if (remainingFieldPositions.length === 0) {
     return combinationsSoFar;
   }
 
-  const [fd, ...restOfFields] = remainingFieldPositions;
-  const possibilities = fd[1];
-  const possSoFar = combinationsSoFar
-    .flatMap((combination) => possibilities.map((p) => ({ ...combination, [fd[0][0]]: p })))
-    .filter((p) => uniq(values(p)).length === values(p).length);
-  return addPossibilities(restOfFields, possSoFar);
+  const [[fieldDefinition, possibleFieldPosition], ...restOfFields] = remainingFieldPositions;
+
+  return addPossibilities(
+    restOfFields,
+    combinationsSoFar.flatMap((combination) =>
+      possibleFieldPosition
+        .filter((possibilePosition) => !has(combination, possibilePosition))
+        .map((position) => ({ ...combination, [position]: fieldName(fieldDefinition) }))
+    )
+  );
 }
 
 export function day16(): void {
@@ -83,9 +85,8 @@ export function day16(): void {
   ]);
 
   const vfpSorted = orderBy(validFieldPositions, (vfp) => vfp[1].length);
-  const res = addPossibilities(vfpSorted, [{}]);
+  const result = addPossibilities(vfpSorted, [{}])[0];
 
-  const depFields = toPairs(res[0]).filter(([fieldName]) => /^departure/.test(fieldName));
-
-  console.log("Day 16 part 2:", depFields.map(([, fieldNumber]) => yourTicket[fieldNumber]).reduce(multiply));
+  const depFields = toPairs(result).filter(([, fieldName]) => /^departure/.test(fieldName));
+  console.log("Day 16 part 2:", depFields.map(([fieldNumber]) => yourTicket[+fieldNumber]).reduce(multiply));
 }
