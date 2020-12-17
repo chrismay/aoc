@@ -1,100 +1,82 @@
-import { fromPairs, isEqual, range, toPairs, uniqBy } from "lodash";
-import { puzzle, testSpace } from "./day17_input";
+import { fromPairs, isEqual, keys, range, toPairs, uniqBy } from "lodash";
+import { puzzle } from "./day17_input";
 
-type Coord = { x: number; y: number; z: number };
-type Space = { [ccord: string]: boolean };
+type Coord = { x: number; y: number; z: number; w: number };
+type Space = { [coord: string]: boolean };
 
 function c2s(c: Coord) {
-  return `${c.x}:${c.y}:${c.z}`;
+  return `${c.x}:${c.y}:${c.z}:${c.w}`;
 }
 
 function s2c(s: string): Coord {
-  const [x, y, z] = s.split(":");
-  return { x: +x, y: +y, z: +z };
+  const [x, y, z, w] = s.split(":");
+  return { x: +x, y: +y, z: +z, w: +w };
 }
-function surroundingCoords(c: Coord): Coord[] {
-  // console.log(c);
+
+function surroundingCoords(c: Coord, dimensions: 3 | 4): Coord[] {
+  const wRange = dimensions === 3 ? [0] : range(c.w - 1, c.w + 2);
   return range(c.x - 1, c.x + 2).flatMap((x) =>
     range(c.y - 1, c.y + 2).flatMap((y) =>
-      range(c.z - 1, c.z + 2).map((z) => {
-        return { x, y, z };
-      })
+      range(c.z - 1, c.z + 2).flatMap((z) =>
+        wRange.map((w) => {
+          return { x, y, z, w };
+        })
+      )
     )
   );
 }
 
-function getSurrounding(start: Coord, s: Space): [string, boolean][] {
-  return surroundingCoords(start)
+function getSurroundingCells(start: Coord, s: Space, dimensions: 3 | 4): [string, boolean][] {
+  return surroundingCoords(start, dimensions)
     .filter((c) => !isEqual(start, c))
     .map((c) => {
       const k = c2s(c);
-      // console.log(k);
       return [k, s[k]];
     });
 }
 
 function parseInput(input: string): Space {
   const z = 0;
+  const w = 0;
   const space: Space = {};
   input.split("\n").forEach((line, y) =>
     line.split("").forEach((char, x) => {
-      const coord = c2s({ x, y, z });
+      const coord = c2s({ x, y, z, w });
       space[coord] = char === "#";
     })
   );
   return space;
 }
 
-function evolveCell(c: Coord, s: Space): boolean {
-  const surroundingActive = getSurrounding(c, s).filter(([c, v]) => v).length;
+function evolveCell(c: Coord, s: Space, dimensions: 3 | 4): boolean {
+  const surroundingActive = getSurroundingCells(c, s, dimensions).filter(([, v]) => v).length;
   const cell = s[c2s(c)] || false;
   if (cell) {
-    if (surroundingActive === 2 || surroundingActive === 3) {
-      return true;
-    } else {
-      return false;
-    }
+    return surroundingActive === 2 || surroundingActive === 3;
   } else {
-    if (surroundingActive === 3) {
-      return true;
-    } else {
-      return false;
-    }
+    return surroundingActive === 3;
   }
 }
 
-export function day17() {
-  console.log("Day 17");
-  //console.log(surroundingCoords({ x: 0, y: 0, z: 0 }));
-  //   console.log(parseInput(testSpace));
-  const space = parseInput(testSpace);
-  console.log("space:", space);
-
-  const newSpacePairs = uniqBy(
-    toPairs(space).flatMap(([c, v]) => surroundingCoords(s2c(c))),
-    (c) => c2s(c)
-  );
-  const newSpace: [Coord, boolean][] = newSpacePairs.map((c) => [c, evolveCell(c, space)]).filter(([c, v]) => v) as [
-    Coord,
-    boolean
-  ][];
-
-  console.log("***");
-  //  console.log(newSpace.filter(([{ x, y, z }, v]) => z === 0));
-
-  var s = parseInput(puzzle);
-  range(0, 6).forEach((loop) => {
-    console.log(toPairs(s).length);
-    var newPairs = uniqBy(
-      toPairs(s).flatMap(([c, v]) => surroundingCoords(s2c(c))),
-      (c) => c2s(c)
+function runIterations(space: Space, iterations: number, dimensions: 3 | 4) {
+  const result = range(0, iterations).reduce((s) => {
+    const affectedRegion = uniqBy(
+      toPairs(s).flatMap(([c]) => surroundingCoords(s2c(c), dimensions)),
+      c2s
     );
-    var evolved = newPairs
-      .map((c) => [c, evolveCell(c, s)])
-      .filter(([c, v]) => v)
+    const evolved = affectedRegion
+      .map((c) => [c, evolveCell(c, s, dimensions)])
+      .filter(([, v]) => v)
       .map(([c, v]) => [c2s(c as Coord), v]);
-    console.log(`iteration ${loop + 1} has ${evolved.length} active`);
-    s = fromPairs(evolved);
-  });
-  console.log(toPairs(s));
+    return fromPairs(evolved);
+  }, space);
+
+  return keys(result).length;
+}
+
+export function day17() {
+  var startingSpace = parseInput(puzzle);
+
+  console.log("Day 17 part 1:", runIterations(startingSpace, 6, 3));
+  console.log("Day 17 part 2:", runIterations(startingSpace, 6, 4));
 }
