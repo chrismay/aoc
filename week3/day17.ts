@@ -1,4 +1,5 @@
-import { fromPairs, isEqual, keys, range, toPairs, uniqBy } from "lodash";
+import { fromPairs, isEqual, keys, memoize, range, toPairs, uniqBy } from "lodash";
+import { cartesianProduct } from "../util";
 import { puzzle } from "./day17_input";
 
 type Coord = { x: number; y: number; z: number; w: number };
@@ -13,18 +14,18 @@ function s2c(s: string): Coord {
   return { x: +x, y: +y, z: +z, w: +w };
 }
 
-function surroundingCoords(c: Coord, dimensions: 3 | 4): Coord[] {
+function surroundingCoordsF(c: Coord, dimensions: 3 | 4): Coord[] {
   const wRange = dimensions === 3 ? [0] : range(c.w - 1, c.w + 2);
-  return range(c.x - 1, c.x + 2).flatMap((x) =>
-    range(c.y - 1, c.y + 2).flatMap((y) =>
-      range(c.z - 1, c.z + 2).flatMap((z) =>
-        wRange.map((w) => {
-          return { x, y, z, w };
-        })
-      )
-    )
-  );
+
+  return cartesianProduct(
+    range(c.x - 1, c.x + 2),
+    range(c.y - 1, c.y + 2),
+    range(c.z - 1, c.z + 2),
+    wRange
+  ).map(([x, y, z, w]) => ({ x, y, z, w }));
 }
+
+const surroundingCoords = memoize(surroundingCoordsF, (...args) => JSON.stringify(args));
 
 function getSurroundingCells(start: Coord, s: Space, dimensions: 3 | 4): [string, boolean][] {
   return surroundingCoords(start, dimensions)

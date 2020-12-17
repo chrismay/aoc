@@ -1,12 +1,6 @@
 import { Dictionary, fromPairs, multiply, toNumber } from "lodash";
+import { cartesianProduct } from "../util";
 import { expensesInput } from "./day1_input";
-
-const cartesianProduct = <T>(...sets: T[][]) =>
-  sets.reduce<T[][]>(
-    (accSets, set) =>
-      accSets.flatMap((accSet) => set.map((value) => [...accSet, value])),
-    [[]]
-  );
 
 export function day1(): void {
   const expenses: number[] = expensesInput.split("\n").map(toNumber);

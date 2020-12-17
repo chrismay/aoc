@@ -18,3 +18,6 @@ export function partialReduce<T, A>(arr: T[], f: (a: A, t: T) => A | undefined, 
   const acc = f(seed, h);
   return acc === undefined ? seed : partialReduce(t, f, acc);
 }
+
+export const cartesianProduct = <T>(...sets: T[][]) =>
+  sets.reduce<T[][]>((accSets, set) => accSets.flatMap((accSet) => set.map((value) => [...accSet, value])), [[]]);
