@@ -75,8 +75,8 @@ function runIterations(space: Space, iterations: number, dimensions: 3 | 4) {
   return keys(result).length;
 }
 
-export function day17() {
-  var startingSpace = parseInput(puzzle);
+export function day17(): void {
+  const startingSpace = parseInput(puzzle);
 
   console.log("Day 17 part 1:", runIterations(startingSpace, 6, 3));
   console.log("Day 17 part 2:", runIterations(startingSpace, 6, 4));
