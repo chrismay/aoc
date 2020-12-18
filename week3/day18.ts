@@ -69,35 +69,36 @@ function shunt(expr: string[], precedence: (s: string) => number): string[] {
     }
     throw "Unparseable token " + token;
   }, state);
-  while (result.operatorStack.length > 0) {
-    result.outputQueue.push(result.operatorStack.pop()!!);
-  }
-  return result.outputQueue;
+
+  // push the remainder of the operator stack into the end of the output queue.
+  return doWhile(
+    (res) => {
+      const { op, remaining } = pop(res.operatorStack);
+      return { operatorStack: remaining, outputQueue: push(op, res.outputQueue) };
+    },
+    (res) => res.operatorStack.length > 0,
+    result
+  ).outputQueue;
 }
 
 function evaluate(rpn: string[]): number {
-  //console.log(rpn);
-  var stack: number[] = [];
-  rpn.forEach((token) => {
+  const s = rpn.reduce((stack, token) => {
     if (isFinite(+token)) {
-      stack.push(+token);
+      return push(+token, stack);
     } else {
-      const a = stack.pop()!!;
-      const b = stack.pop()!!;
+      const pop1 = pop(stack);
+      const pop2 = pop(pop1.remaining);
       switch (token) {
         case "+":
-          stack.push(+a + b);
-          break;
+          return push(pop1.op + pop2.op, pop2.remaining);
         case "*":
-          stack.push(a * b);
-          break;
+          return push(pop1.op * pop2.op, pop2.remaining);
         default:
           throw "Unrecognised operator " + token;
       }
     }
-    //console.log(`${token}: ${stack}`);
-  });
-  return stack.pop()!!;
+  }, [] as number[]);
+  return pop(s).op;
 }
 
 function parse(s: string): string[] {
