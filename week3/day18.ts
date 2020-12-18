@@ -20,13 +20,14 @@ function peek<T>(s: Stack<T>): T {
 }
 
 function push<T>(t: T, s: Stack<T>): Stack<T> {
-  s.push(t);
-  return s;
+  return [...s, t];
 }
 
 function pop<T>(s: Stack<T>): { op: T; remaining: Stack<T> } {
-  const op = s.pop()!!;
-  return { op, remaining: s };
+  const remaining = [...s];
+
+  const op = remaining.pop()!!;
+  return { op, remaining };
 }
 
 type State = { outputQueue: Queue<string>; operatorStack: Stack<string> };
