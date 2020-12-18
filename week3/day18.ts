@@ -1,4 +1,5 @@
 import { last, sum } from "lodash";
+import { doWhile } from "../util";
 import { sums } from "./day18_input";
 
 type Stack<T> = T[];
@@ -23,9 +24,9 @@ function push<T>(t: T, s: Stack<T>): Stack<T> {
   return s;
 }
 
-function pop<T>(s: Stack<T>): [t: T, s: Stack<T>] {
-  const t = s.pop()!!;
-  return [t, s];
+function pop<T>(s: Stack<T>): { op: T; remaining: Stack<T> } {
+  const op = s.pop()!!;
+  return { op, remaining: s };
 }
 
 type State = { outputQueue: Queue<string>; operatorStack: Stack<string> };
@@ -37,26 +38,34 @@ function shunt(expr: string[], precedence: (s: string) => number): string[] {
     if (isFinite(+token)) {
       return { ...s, outputQueue: push(token, s.outputQueue) };
     } else if (token === "+" || token === "*") {
-      while (
-        s.operatorStack.length > 0 &&
-        precedence(token) <= +precedence(peek(s.operatorStack)) &&
-        peek(s.operatorStack) !== "("
-      ) {
-        s.outputQueue.push(s.operatorStack.pop()!!);
-      }
-      s.operatorStack.push(token);
-      return s;
+      const os = doWhile(
+        (os) => {
+          const { op, remaining } = pop(os.operatorStack);
+          return { outputQueue: push(op, os.outputQueue), operatorStack: remaining };
+        },
+        (os) =>
+          os.operatorStack.length > 0 &&
+          precedence(token) <= +precedence(peek(os.operatorStack)) &&
+          peek(os.operatorStack) !== "(",
+        s
+      );
+      return { ...os, operatorStack: push(token, os.operatorStack) };
     } else if (token === "(") {
       return { ...s, operatorStack: push(token, s.operatorStack) };
     } else if (token === ")") {
-      while (peek(s.operatorStack) !== "(") {
-        s.outputQueue.push(s.operatorStack.pop()!!);
+      const bs = doWhile(
+        (bs) => {
+          const { op, remaining } = pop(bs.operatorStack);
+          return { outputQueue: push(op, bs.outputQueue), operatorStack: remaining };
+        },
+        (bs) => peek(bs.operatorStack) !== "(",
+        { ...s }
+      );
+      if (peek(bs.operatorStack) === "(") {
+        return { ...bs, operatorStack: pop(bs.operatorStack).remaining };
+      } else {
+        return bs;
       }
-      if (peek(s.operatorStack) === "(") {
-        const [, popped] = pop(s.operatorStack);
-        return { ...s, operatorStack: popped };
-      }
-      return s;
     }
     throw "Unparseable token " + token;
   }, state);
