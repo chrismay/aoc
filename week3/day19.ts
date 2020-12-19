@@ -139,6 +139,7 @@ export function day19(): void {
   // The starting points to resolve from are the inputs to the recursive rules.
   const recursionInputs = uniq(ruleInput.split("\n").filter(isSelfReferentialRule).flatMap(getSubRules));
 
+  // keep refining until we have resolved all the rules which are inputs to the recursive rules.
   while (some(recursionInputs, (n) => !has(resolved, +n))) {
     const r = refineList(remaining, resolved);
     resolved = r.resolved;
@@ -146,8 +147,7 @@ export function day19(): void {
   }
   //console.log(resolved, remaining);
 
+  // now use the resolved rules as inputs to the custom matcher.
   const matches = messages.split("\n").filter((m) => match(m, resolved, resolved[31][0].length));
   console.log("Day 19 part 2:", matches.length);
 }
-
-day19();
