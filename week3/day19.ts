@@ -1,24 +1,27 @@
-import { every, fromPairs, some, uniq } from "lodash";
+import { every, fromPairs, has, isEqual, some, uniq } from "lodash";
 import { loopPuzzle, puzzle } from "./day19_input";
 type RulesMap = { [n: number]: string[] };
 
-function parseInput(inputData: string) {
-  /// FIRST PASS
-  const input = inputData.split("\n");
-  const resolved: RulesMap = {};
-  const remaining: string[] = [];
-  input.forEach((line) => {
-    const [ruleNumber, rule] = line.split(":");
-    const isLetter = rule.match(/\"([a-z])\"/);
-    if (isLetter != null) {
-      resolved[+ruleNumber] = [isLetter[1]];
-    } else {
-      remaining.push(line);
-    }
-  });
-  return { resolved, remaining };
-}
+const eq = (a: unknown) => (b: unknown) => isEqual(a, b);
+const neq = (a: unknown) => (b: unknown) => !isEqual(a, b);
 
+function parseInput(inputData: string): { resolved: RulesMap; remaining: string[] } {
+  return inputData.split("\n").reduce(
+    ({ resolved, remaining }, line) => {
+      const [ruleNumber, rule] = line.split(":");
+      const [, letter] = rule.match(/\"([a-z])\"/) || [];
+      if (letter !== undefined) {
+        return { remaining, resolved: { ...resolved, [+ruleNumber]: [letter] } };
+      } else {
+        return { resolved, remaining: [...remaining, line] };
+      }
+    },
+    { resolved: {} as RulesMap, remaining: [] as string[] }
+  );
+}
+//
+// Assumes that the rule is resolvable i.e. all numbers in the rule exist in the resolved RulesMap
+//
 function resolveRule(rule: string[], resolved: RulesMap): string[] {
   function resolveRuleR(soFar: string[], remaining: string[], resolved: RulesMap): string[] {
     if (remaining.length === 0) {
@@ -26,40 +29,42 @@ function resolveRule(rule: string[], resolved: RulesMap): string[] {
     } else {
       const [next, ...rest] = remaining;
       const nextRule = resolved[+next] || [];
-      const acc = nextRule.flatMap((r) => soFar.map((s) => s + r));
-      return resolveRuleR(acc, rest, resolved);
+      return resolveRuleR(
+        nextRule.flatMap((r) => soFar.map((s) => s + r)),
+        rest,
+        resolved
+      );
     }
   }
   return resolveRuleR([""], rule, resolved);
 }
 
-function refineList(rulesList: string[], resolved: RulesMap) {
-  const remaining: string[] = [];
-  rulesList.forEach((line) => {
-    const [ruleNumber, rule] = line.split(":");
-    const orParts = rule.split("|");
-    const lineChars = orParts.flatMap((rule) => rule.split(" ")).filter((c) => c.length > 0);
-    //console.log("lineChars", lineChars);
-    const isResolvable = every(lineChars, (num) => resolved[+num] !== undefined);
-    // console.log(line, isResolvable);
-    if (isResolvable) {
-      const resolvedRule: string[] = orParts.flatMap((op) => {
-        const rule = op.split(" ").filter((c) => c.length > 0);
-        return resolveRule(rule, resolved);
-      });
-      // console.log("Resolved Rule", resolvedRule);
-      resolved[+ruleNumber] = resolvedRule;
-    } else {
-      remaining.push(line);
-    }
-  });
-  return { resolved, remaining };
+function parseRule(rule: string): string[] {
+  return rule.split(" ").filter((c) => c.length > 0);
+}
+
+// Go through the list, refining any rules that can be refined.
+function refineList(rulesList: string[], resolvedP: RulesMap): { resolved: RulesMap; remaining: string[] } {
+  return rulesList.reduce(
+    ({ resolved, remaining }, line) => {
+      const [ruleNumber, rule] = line.split(":");
+      const alternates = rule.split("|");
+      const isResolvable = every(alternates.flatMap(parseRule), (num) => has(resolved, +num));
+      if (isResolvable) {
+        const resolvedRule: string[] = alternates.flatMap((ruleStr) => resolveRule(parseRule(ruleStr), resolved));
+        return { remaining, resolved: { ...resolved, [+ruleNumber]: resolvedRule } };
+      } else {
+        return { remaining: [...remaining, line], resolved };
+      }
+    },
+    { resolved: resolvedP, remaining: [] as string[] }
+  );
 }
 
 function isSelfReferentialRule(ruleLine: string) {
   const [ruleNum, rule] = ruleLine.split(":");
   const ruleElements = rule.split(" ");
-  return some(ruleElements, (e) => e === ruleNum);
+  return some(ruleElements, eq(ruleNum));
 }
 
 function getSubRules(ruleLine: string) {
@@ -68,11 +73,11 @@ function getSubRules(ruleLine: string) {
     .split(" ")
     .filter((ch) => ch.length > 0)
     .filter((ch) => isFinite(+ch))
-    .filter((ch) => ch !== ruleNum);
+    .filter(neq(ruleNum));
 }
 
 function match(input: string, resolved: RulesMap, ruleLen: number) {
-  // must end in a string of 31s. Then there must be at least one more 42 in front
+  // Must begin with N 41s and end with M 31s, with nothing else in between. M must be >1 and N must be at least M+1
 
   const match42 = fromPairs(resolved[42].map((s) => [s, true]));
   const match31 = fromPairs(resolved[31].map((s) => [s, true]));
@@ -141,7 +146,7 @@ export function day19() {
   ///// FIRST PASS
   var { resolved, remaining } = parseInput(ruleInput);
   //// REPEATED PASS
-  while (some(recursionInputs, (n) => resolved[+n] === undefined)) {
+  while (some(recursionInputs, (n) => !has(resolved, +n))) {
     const r = refineList(remaining, resolved);
     resolved = r.resolved;
     remaining = r.remaining;
