@@ -1,5 +1,5 @@
 import { assign, fromPairs, last, max, range } from "lodash";
-import { doWhile } from "../util";
+import { doWhile, time } from "../util";
 
 type State = {
   turn: number;
@@ -18,14 +18,13 @@ function turn(state: State): State {
   state.lastSpoken = speakNumber;
   state.turn = state.turn + 1;
   state.maxSpoken = max([state.maxSpoken, speakNumber]) || 0;
-  //if ((state.turn - 1) % 1000000 === 0) console.log("Turn / Spoke", state.turn - 1, state.lastSpoken, state.maxSpoken);
 
   return state;
 }
 
 function start(nums: number[]): State {
   const init: { [k: number]: number | undefined } = {};
-  range(0, 30000000).forEach((i) => (init[i] = undefined));
+  time("range", () => range(0, 30000000).forEach((i) => (init[i] = undefined)))();
 
   return {
     maxSpoken: 0,
@@ -36,8 +35,9 @@ function start(nums: number[]): State {
 }
 
 export function day15(): void {
-  const p1 = doWhile(turn, (state) => state.turn !== 2021, start([12, 1, 16, 3, 11, 0]));
+  const p1 = time("dw", doWhile)(turn, (state) => state.turn !== 2021, time("st", start)([12, 1, 16, 3, 11, 0]));
   console.log("Day 15 Part 1:", p1.lastSpoken);
-  const p2 = doWhile(turn, (state) => state.turn !== 30000001, start([12, 1, 16, 3, 11, 0]));
+  const p2 = time("dw", doWhile)(turn, (state) => state.turn !== 30000001, time("st", start)([12, 1, 16, 3, 11, 0]));
   console.log("Day 15 Part 2:", p2.lastSpoken);
 }
+const sTime = Date.now();

@@ -21,3 +21,12 @@ export function partialReduce<T, A>(arr: T[], f: (a: A, t: T) => A | undefined, 
 
 export const cartesianProduct: <T>(...sets: T[][]) => T[][] = <T>(...sets: T[][]) =>
   sets.reduce<T[][]>((accSets, set) => accSets.flatMap((accSet) => set.map((value) => [...accSet, value])), [[]]);
+
+export const time = <T extends Array<any>, U>(label: string, fn: (...args: T) => U) => {
+  return (...args: T): U => {
+    //console.log(`${label}>>:`, Date.now());
+    const ret = fn(...args);
+    //console.log(`${label}<<:`, Date.now());
+    return ret;
+  };
+};
