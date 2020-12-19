@@ -148,5 +148,3 @@ export function day18(): void {
     )
   );
 }
-
-day18();

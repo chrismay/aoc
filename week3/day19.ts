@@ -1,4 +1,4 @@
-import { every, fromPairs, has, isEqual, some, uniq } from "lodash";
+import { chunk, Dictionary, every, fromPairs, has, isEqual, reverse, some, uniq } from "lodash";
 import { loopPuzzle, puzzle } from "./day19_input";
 type RulesMap = { [n: number]: string[] };
 
@@ -68,84 +68,77 @@ function isSelfReferentialRule(ruleLine: string) {
 }
 
 function getSubRules(ruleLine: string) {
-  const [ruleNum, rule] = ruleLine.split(":");
-  return rule
-    .split(" ")
-    .filter((ch) => ch.length > 0)
-    .filter((ch) => isFinite(+ch))
-    .filter(neq(ruleNum));
+  const [ruleNum, ruleStr] = ruleLine.split(":");
+  return ruleStr.split("|").flatMap(parseRule).filter(neq(ruleNum));
 }
 
-function match(input: string, resolved: RulesMap, ruleLen: number) {
-  // Must begin with N 41s and end with M 31s, with nothing else in between. M must be >1 and N must be at least M+1
+function countMatches(matches: Dictionary<boolean>) {
+  return function (acc: { continueCounting: boolean; remainder: string[]; count: number }, part: string) {
+    if (matches[part] && acc.continueCounting) {
+      return { continueCounting: true, remainder: acc.remainder, count: ++acc.count };
+    } else {
+      return { continueCounting: false, remainder: [...acc.remainder, part], count: acc.count };
+    }
+  };
+}
 
+// Part 2 matching rule.
+// Must begin with "N" 41s and end with "M" 31s, with nothing else in between. M must be >1 and N must be at least M+1
+function match(input: string, resolved: RulesMap, ruleLen: number) {
   const match42 = fromPairs(resolved[42].map((s) => [s, true]));
   const match31 = fromPairs(resolved[31].map((s) => [s, true]));
-  let remainder = input;
-  // eat off the 31s from the end
-  const endRegex = new RegExp("(.*)([a-z]{" + ruleLen + "})$");
-
-  let c31 = 0;
-  let eating31s = true;
-  while (remainder.length > 0 && eating31s) {
-    const [, prefix, ending] = remainder.match(endRegex) || [];
-    if (match31[ending] === undefined) {
-      eating31s = false;
-    } else {
-      //console.log("Ate a 31 from the end");
-      c31++;
-      remainder = prefix;
-    }
-  }
-  if (c31 === 0) {
+  const parts = chunk([...input], ruleLen).map((s) => s.join(""));
+  if (parts.length < 3) {
     return false;
   }
-  //  console.log(`at ${c31} 31s from the end`);
+  // eat the 31s from the end of the list
+  const match31s = reverse(parts).reduce(countMatches(match31), {
+    continueCounting: true,
+    remainder: [] as string[],
+    count: 0,
+  });
 
-  //now eat off the 42s...
-  let c42 = 0;
-  let eating42s = true;
-  while (remainder.length > 0 && eating42s) {
-    const beginRegex = new RegExp("^([a-z]{" + ruleLen + "})(.*)");
-
-    const [, next, rest] = remainder.match(beginRegex) || [];
-    remainder = rest;
-    if (match42[next]) {
-      c42++;
-    } else {
-      eating42s = false;
-    }
-    //    console.log(`ate ${c42} 42s`);
-  }
-  if (remainder.length > 0) {
-    //console.log(`${input} had a remainder ${remainder}`);
+  if (match31s.count === 0) {
     return false;
   }
-  if (c42 - c31 < 1) {
-    //console.log(`${input} had a mismatch :42 {}`);
+  const match42s = match31s.remainder.reduce(countMatches(match42), {
+    continueCounting: true,
+    remainder: [] as string[],
+    count: 0,
+  });
+
+  if (match42s.remainder.length > 0) {
+    //console.log(`${input} did not all match 42: ${remainder}`);
     return false;
   }
+  if (match42s.count - match31s.count < 1) {
+    //console.log(`${input} was not balanced`);
+    return false;
+  }
+
   return true;
 }
 
-export function day19() {
+export function day19(): void {
   const [ruleInput1, messages1] = puzzle.split("\n\n");
-  /// FIRST PASS
-  var { resolved, remaining } = parseInput(ruleInput1);
-  //// REPEATED PASS
-  while (remaining.length > 0) {
-    const r = refineList(remaining, resolved);
-    resolved = r.resolved;
-    remaining = r.remaining;
+  // can't quite be bothered to turn this into a reduce.
+  let { resolved: resolvedP1, remaining: remainingP1 } = parseInput(ruleInput1);
+  while (remainingP1.length > 0) {
+    const r = refineList(remainingP1, resolvedP1);
+    resolvedP1 = r.resolved;
+    remainingP1 = r.remaining;
   }
-  const allowedMessages = fromPairs(resolved[0].map((s) => [s, true]));
+  const allowedMessages = fromPairs(resolvedP1[0].map((s) => [s, true]));
   console.log("Day 19 part 1:", messages1.split("\n").filter((m) => allowedMessages[m]).length);
 
+  /// ---- Part 2----
+
   const [ruleInput, messages] = loopPuzzle.split("\n\n");
+  let { resolved, remaining } = parseInput(ruleInput);
+
+  // The starting points to resolve from are the inputs to the recursive rules.
   const recursionInputs = uniq(ruleInput.split("\n").filter(isSelfReferentialRule).flatMap(getSubRules));
-  ///// FIRST PASS
-  var { resolved, remaining } = parseInput(ruleInput);
-  //// REPEATED PASS
+
   while (some(recursionInputs, (n) => !has(resolved, +n))) {
     const r = refineList(remaining, resolved);
     resolved = r.resolved;
@@ -153,7 +146,7 @@ export function day19() {
   }
   //console.log(resolved, remaining);
 
-  const matches = messages.split("\n").filter((m) => match(m, resolved, 8));
+  const matches = messages.split("\n").filter((m) => match(m, resolved, resolved[31][0].length));
   console.log("Day 19 part 2:", matches.length);
 }
 

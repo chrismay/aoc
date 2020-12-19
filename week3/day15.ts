@@ -40,4 +40,3 @@ export function day15(): void {
   const p2 = time("dw", doWhile)(turn, (state) => state.turn !== 30000001, time("st", start)([12, 1, 16, 3, 11, 0]));
   console.log("Day 15 Part 2:", p2.lastSpoken);
 }
-const sTime = Date.now();
