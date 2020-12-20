@@ -1,4 +1,4 @@
-import { mapValues, reverse, values } from "lodash";
+import { cloneDeep, mapValues, reverse, values } from "lodash";
 import { puzzleInput } from "./day20_input";
 
 type MatchedEdge = { edge: string; matches: number[] };
@@ -6,6 +6,35 @@ type MatchedEdges = { top: MatchedEdge; left: MatchedEdge; right: MatchedEdge; b
 type TileEdges = { id: number; tile: string[]; edges: MatchedEdges; transformation: string };
 
 const strRev = (str: string) => reverse(str.split("")).join("");
+
+function transpose<T>(array: T[][]): T[][] {
+  return array[0].map((_, colIndex) => array.map((row) => row[colIndex]));
+}
+
+function printTile(t: string[]) {
+  t.forEach((l) => console.log(l));
+}
+function flipTile(tile: string[]): string[] {
+  const array = tile.map((l) => l.split(""));
+  const max = array.length - 1;
+  const target = cloneDeep(array);
+  array.forEach((row, rowIdx) => {
+    target[max - rowIdx] = row;
+  });
+  return target.map((l) => l.join(""));
+}
+
+function rotateTile(tile: string[]): string[] {
+  const array = tile.map((l) => l.split(""));
+  const max = array.length - 1;
+  const target = cloneDeep(array);
+  array.forEach((row, rowIdx) =>
+    row.forEach((cell, colIdx) => {
+      target[colIdx][max - rowIdx] = cell;
+    })
+  );
+  return target.map((l) => l.join(""));
+}
 
 function getEdges(tile: string[]): MatchedEdges {
   const top = { edge: tile[0], matches: [] };
@@ -51,6 +80,7 @@ function transformToMatchRightEdge(edge: string, tile: TileEdges): TileEdges {
     transf = rotate(transf);
     rotations++;
   }
+
   if (transf.edges.left.edge !== edge) {
     transf = flip(transf);
   }
@@ -65,7 +95,7 @@ function transformToMatchRightEdge(edge: string, tile: TileEdges): TileEdges {
 function flip(tile: TileEdges): TileEdges {
   return {
     ...tile,
-    transformation: tile.transformation + "R",
+    transformation: tile.transformation + "F",
     edges: {
       top: tile.edges.bottom,
       bottom: tile.edges.top,
@@ -78,7 +108,7 @@ function flip(tile: TileEdges): TileEdges {
 function rotate(tile: TileEdges): TileEdges {
   return {
     ...tile,
-    transformation: tile.transformation + "F",
+    transformation: tile.transformation === "RRR" ? "" : tile.transformation + "R",
     edges: {
       top: { edge: strRev(tile.edges.left.edge), matches: tile.edges.left.matches },
       bottom: { edge: strRev(tile.edges.right.edge), matches: tile.edges.right.matches },
@@ -139,7 +169,7 @@ export function day20(): void {
   }
   console.log(topRow.map((t) => t.id));
 
-  let picture: TileEdges[][] = [topRow];
+  let picture: TileEdges[][] = [];
   // now work downwards
   topRow.forEach((tile, index) => {
     let col: TileEdges[] = [tile];
@@ -149,11 +179,60 @@ export function day20(): void {
       const next = transformToMatchBottonEdge(curr.edges.bottom.edge, tilesWithMatches.find((t) => t.id === nextId)!!);
       col = [...col, next];
     }
-    console.log(
-      "col " + index,
-      col.map((t) => t.id)
-    );
+    picture[index] = col;
   });
+  picture = transpose(picture);
+  transpose(picture).map((row) => {
+    console.log(row.map((cell) => cell.id + cell.transformation).join(","));
+  });
+
+  console.log("------");
+  printTile(picture[0][0].tile);
+  printTile(stripBorder(picture[0][0]).tile);
+
+  const pic2 = picture.map((row) => row.map((cell) => stripBorder(applyTransforms(cell))));
+  const image: string[][] = [];
+  for (let i = 0; i < 96; i++) {
+    const rw = [];
+    for (let j = 0; j < 96; j++) {
+      rw[j] = " ";
+    }
+    image[i] = rw;
+  }
+  pic2.forEach((line, lineNum) => {
+    line.forEach((t, cNum) => {
+      t.tile.forEach((tL, tLNum) => {
+        tL.split("").forEach((ch, chNum) => {
+          const lineNumber = lineNum * 8 + tLNum;
+          const colNumber = cNum * 8 + chNum;
+          image[lineNumber][colNumber] = ch;
+        });
+      });
+    });
+  });
+  console.log();
+  printTile(picture[0][0].tile);
+  image.forEach((l) => console.log(l.join("")));
+}
+
+function applyTransforms(t: TileEdges): TileEdges {
+  return [...t.transformation].reduce((te, trans) => {
+    switch (trans) {
+      case "F":
+        return { ...te, tile: flipTile(te.tile) };
+      case "R":
+        return { ...te, tile: rotateTile(te.tile) };
+      default:
+        throw "what?";
+    }
+  }, t);
+}
+
+function stripBorder(t: TileEdges): TileEdges {
+  function sb(tile: string[]) {
+    return tile.slice(1, tile.length - 1).map((line) => line.slice(1, line.length - 1));
+  }
+  return { ...t, tile: sb(t.tile) };
 }
 
 day20();
