@@ -1,3 +1,11 @@
+export const sm = `
+                  # 
+#    ##    ##    ###
+ #  #  #  #  #  #   
+`
+  .split("\n")
+  .map((s) => s.split(""));
+
 export const testTiles = `Tile 2311:
 ..##.#..#.
 ##..#.....

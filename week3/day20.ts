@@ -1,5 +1,5 @@
 import { cloneDeep, mapValues, reverse, values } from "lodash";
-import { puzzleInput } from "./day20_input";
+import { puzzleInput, sm } from "./day20_input";
 
 type MatchedEdge = { edge: string; matches: number[] };
 type MatchedEdges = { top: MatchedEdge; left: MatchedEdge; right: MatchedEdge; bottom: MatchedEdge };
@@ -26,6 +26,11 @@ function flipTile(tile: string[]): string[] {
 
 function rotateTile(tile: string[]): string[] {
   const array = tile.map((l) => l.split(""));
+
+  return rotateMatrix(array).map((l) => l.join(""));
+}
+
+function rotateMatrix(array: string[][]): string[][] {
   const max = array.length - 1;
   const target = cloneDeep(array);
   array.forEach((row, rowIdx) =>
@@ -33,7 +38,7 @@ function rotateTile(tile: string[]): string[] {
       target[colIdx][max - rowIdx] = cell;
     })
   );
-  return target.map((l) => l.join(""));
+  return target;
 }
 
 function getEdges(tile: string[]): MatchedEdges {
@@ -118,6 +123,26 @@ function rotate(tile: TileEdges): TileEdges {
   };
 }
 
+function applyTransforms(t: TileEdges): TileEdges {
+  return [...t.transformation].reduce((te, trans) => {
+    switch (trans) {
+      case "F":
+        return { ...te, tile: flipTile(te.tile) };
+      case "R":
+        return { ...te, tile: rotateTile(te.tile) };
+      default:
+        throw "what?";
+    }
+  }, t);
+}
+
+function stripBorder(t: TileEdges): TileEdges {
+  function sb(tile: string[]) {
+    return tile.slice(1, tile.length - 1).map((line) => line.slice(1, line.length - 1));
+  }
+  return { ...t, tile: sb(t.tile) };
+}
+
 export function day20(): void {
   const tiles = parseInput(puzzleInput);
   const width = 12;
@@ -190,8 +215,10 @@ export function day20(): void {
   printTile(picture[0][0].tile);
   printTile(stripBorder(picture[0][0]).tile);
 
+  // strip the borders and rotate the pieces
   const pic2 = picture.map((row) => row.map((cell) => stripBorder(applyTransforms(cell))));
   const image: string[][] = [];
+  // create a blank image
   for (let i = 0; i < 96; i++) {
     const rw = [];
     for (let j = 0; j < 96; j++) {
@@ -199,6 +226,7 @@ export function day20(): void {
     }
     image[i] = rw;
   }
+  // map the pieces into the image
   pic2.forEach((line, lineNum) => {
     line.forEach((t, cNum) => {
       t.tile.forEach((tL, tLNum) => {
@@ -213,26 +241,63 @@ export function day20(): void {
   console.log();
   printTile(picture[0][0].tile);
   image.forEach((l) => console.log(l.join("")));
+
+  console.log(isSeaMonster(sm, { row: 0, col: 0 }));
+  console.log(isSeaMonster(sm, { row: 1, col: 0 }));
+
+  const imageWithMonsters = rotateMatrix(rotateMatrix(image));
+  const monsters = findSeaMonsters(imageWithMonsters);
+  monsters.forEach((m) => removeSeaMonster(imageWithMonsters, m));
+
+  console.log("---MONSTERS---");
+  imageWithMonsters.forEach((l) => console.log(l.join("")));
+  const hashes = imageWithMonsters.reduce(
+    (c, line) => c + line.reduce((acc, ch) => (ch === "#" ? acc + 1 : acc), 0),
+    0
+  );
+  console.log(hashes);
+}
+function removeSeaMonster(image: string[][], start: { row: number; col: number }) {
+  monsterMap.forEach((coord) => {
+    image[start.row + coord[0]][start.col + coord[1]] = "X";
+  });
 }
 
-function applyTransforms(t: TileEdges): TileEdges {
-  return [...t.transformation].reduce((te, trans) => {
-    switch (trans) {
-      case "F":
-        return { ...te, tile: flipTile(te.tile) };
-      case "R":
-        return { ...te, tile: rotateTile(te.tile) };
-      default:
-        throw "what?";
+function findSeaMonsters(image: string[][]) {
+  const monsterCoords = [];
+  for (let i = 0; i < 93; i++) {
+    for (let j = 0; j < 76; j++) {
+      if (isSeaMonster(image, { row: i, col: j })) {
+        console.log(i, j);
+        monsterCoords.push({ row: i, col: j });
+      }
     }
-  }, t);
+  }
+  return monsterCoords;
 }
 
-function stripBorder(t: TileEdges): TileEdges {
-  function sb(tile: string[]) {
-    return tile.slice(1, tile.length - 1).map((line) => line.slice(1, line.length - 1));
-  }
-  return { ...t, tile: sb(t.tile) };
+const monsterMap = [
+  [0, 18],
+  [1, 0],
+  [1, 5],
+  [1, 6],
+  [1, 11],
+  [1, 12],
+  [1, 17],
+  [1, 18],
+  [1, 19],
+  [2, 1],
+  [2, 4],
+  [2, 7],
+  [2, 10],
+  [2, 13],
+  [2, 16],
+];
+function isSeaMonster(image: string[][], start: { row: number; col: number }) {
+  return monsterMap.reduce((match, coord) => {
+    const ch = image[start.row + coord[0]][start.col + coord[1]];
+    return ch === "#" && match;
+  }, true);
 }
 
 day20();
