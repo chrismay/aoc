@@ -30,3 +30,10 @@ export const time = <T extends Array<unknown>, U>(label: string, fn: (...args: T
     return ret;
   };
 };
+
+export function notNull<T>(t: T | undefined): T {
+  if (t === undefined) {
+    throw "NullPointerException!";
+  }
+  return t;
+}

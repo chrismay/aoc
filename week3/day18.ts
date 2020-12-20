@@ -1,16 +1,9 @@
 import { last, sum } from "lodash";
-import { doWhile } from "../util";
+import { doWhile, notNull } from "../util";
 import { sums } from "./day18_input";
 
 type Stack<T> = T[];
 type Queue<T> = T[];
-
-function notNull<T>(t: T | undefined): T {
-  if (t === undefined) {
-    throw "NullPointerException!";
-  }
-  return t;
-}
 
 function p1Precedence(s: string): number {
   const precedences: { [k: string]: number } = { "+": 10, "*": 10 };

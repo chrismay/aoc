@@ -1,5 +1,6 @@
 import { cloneDeep, mapValues, reverse, values } from "lodash";
-import { puzzleInput, sm } from "./day20_input";
+import { notNull } from "../util";
+import { puzzleInput } from "./day20_input";
 
 type MatchedEdge = { edge: string; matches: number[] };
 type MatchedEdges = { top: MatchedEdge; left: MatchedEdge; right: MatchedEdge; bottom: MatchedEdge };
@@ -11,9 +12,6 @@ function transpose<T>(array: T[][]): T[][] {
   return array[0].map((_, colIndex) => array.map((row) => row[colIndex]));
 }
 
-function printTile(t: string[]) {
-  t.forEach((l) => console.log(l));
-}
 function flipTile(tile: string[]): string[] {
   const array = tile.map((l) => l.split(""));
   const max = array.length - 1;
@@ -142,121 +140,6 @@ function stripBorder(t: TileEdges): TileEdges {
   }
   return { ...t, tile: sb(t.tile) };
 }
-
-export function day20(): void {
-  const tiles = parseInput(puzzleInput);
-  const width = 12;
-  // console.log("Day 20", tiles);
-
-  const edgeMap: { [edge: string]: number[] } = {};
-  tiles.forEach((t) => {
-    values(t.edges).forEach((edge) => {
-      const reversed: string = strRev(edge.edge);
-
-      edgeMap[edge.edge] = [...(edgeMap[edge.edge] || []), t.id];
-      edgeMap[reversed] = [...(edgeMap[reversed] || []), t.id];
-    });
-  });
-
-  const tilesWithMatches: TileEdges[] = tiles.map((tile) => {
-    return {
-      ...tile,
-      edges: mapValues(tile.edges, (e) => ({
-        ...e,
-        matches: edgeMap[e.edge].filter((otherId) => tile.id !== otherId),
-      })),
-    };
-  });
-
-  const corners = tilesWithMatches.filter((t) => {
-    return values(t.edges).flatMap((e) => e.matches).length === 2;
-  });
-
-  const topLeft = tilesWithMatches.find((t) => {
-    return t.edges.top.matches.length === 0 && t.edges.left.matches.length === 0;
-  })!!;
-
-  console.log(topLeft);
-
-  tilesWithMatches.forEach((t) => {
-    values(t.edges).forEach((edge) => {
-      if (edge.matches.length > 1) {
-        throw "Edge Ambiguous";
-      }
-    });
-  });
-  let topRow: TileEdges[] = [topLeft];
-  while (topRow.length < width) {
-    const curr = topRow[topRow.length - 1];
-    const nextId = curr.edges.right.matches[0];
-    const next = transformToMatchRightEdge(curr.edges.right.edge, tilesWithMatches.find((t) => t.id === nextId)!!);
-    topRow = [...topRow, next];
-  }
-  console.log(topRow.map((t) => t.id));
-
-  let picture: TileEdges[][] = [];
-  // now work downwards
-  topRow.forEach((tile, index) => {
-    let col: TileEdges[] = [tile];
-    while (col.length < width) {
-      const curr = col[col.length - 1];
-      const nextId = curr.edges.bottom.matches[0];
-      const next = transformToMatchBottonEdge(curr.edges.bottom.edge, tilesWithMatches.find((t) => t.id === nextId)!!);
-      col = [...col, next];
-    }
-    picture[index] = col;
-  });
-  picture = transpose(picture);
-  transpose(picture).map((row) => {
-    console.log(row.map((cell) => cell.id + cell.transformation).join(","));
-  });
-
-  console.log("------");
-  printTile(picture[0][0].tile);
-  printTile(stripBorder(picture[0][0]).tile);
-
-  // strip the borders and rotate the pieces
-  const pic2 = picture.map((row) => row.map((cell) => stripBorder(applyTransforms(cell))));
-  const image: string[][] = [];
-  // create a blank image
-  for (let i = 0; i < 96; i++) {
-    const rw = [];
-    for (let j = 0; j < 96; j++) {
-      rw[j] = " ";
-    }
-    image[i] = rw;
-  }
-  // map the pieces into the image
-  pic2.forEach((line, lineNum) => {
-    line.forEach((t, cNum) => {
-      t.tile.forEach((tL, tLNum) => {
-        tL.split("").forEach((ch, chNum) => {
-          const lineNumber = lineNum * 8 + tLNum;
-          const colNumber = cNum * 8 + chNum;
-          image[lineNumber][colNumber] = ch;
-        });
-      });
-    });
-  });
-  console.log();
-  printTile(picture[0][0].tile);
-  image.forEach((l) => console.log(l.join("")));
-
-  console.log(isSeaMonster(sm, { row: 0, col: 0 }));
-  console.log(isSeaMonster(sm, { row: 1, col: 0 }));
-
-  const imageWithMonsters = rotateMatrix(rotateMatrix(image));
-  const monsters = findSeaMonsters(imageWithMonsters);
-  monsters.forEach((m) => removeSeaMonster(imageWithMonsters, m));
-
-  console.log("---MONSTERS---");
-  imageWithMonsters.forEach((l) => console.log(l.join("")));
-  const hashes = imageWithMonsters.reduce(
-    (c, line) => c + line.reduce((acc, ch) => (ch === "#" ? acc + 1 : acc), 0),
-    0
-  );
-  console.log(hashes);
-}
 function removeSeaMonster(image: string[][], start: { row: number; col: number }) {
   monsterMap.forEach((coord) => {
     image[start.row + coord[0]][start.col + coord[1]] = "X";
@@ -268,7 +151,6 @@ function findSeaMonsters(image: string[][]) {
   for (let i = 0; i < 93; i++) {
     for (let j = 0; j < 76; j++) {
       if (isSeaMonster(image, { row: i, col: j })) {
-        console.log(i, j);
         monsterCoords.push({ row: i, col: j });
       }
     }
@@ -300,4 +182,115 @@ function isSeaMonster(image: string[][], start: { row: number; col: number }) {
   }, true);
 }
 
-day20();
+export function day20(): void {
+  const tiles = parseInput(puzzleInput);
+  const width = 12;
+  // console.log("Day 20", tiles);
+
+  const edgeMap: { [edge: string]: number[] } = {};
+  tiles.forEach((t) => {
+    values(t.edges).forEach((edge) => {
+      const reversed: string = strRev(edge.edge);
+
+      edgeMap[edge.edge] = [...(edgeMap[edge.edge] || []), t.id];
+      edgeMap[reversed] = [...(edgeMap[reversed] || []), t.id];
+    });
+  });
+
+  const tilesWithMatches: TileEdges[] = tiles.map((tile) => {
+    return {
+      ...tile,
+      edges: mapValues(tile.edges, (e) => ({
+        ...e,
+        matches: edgeMap[e.edge].filter((otherId) => tile.id !== otherId),
+      })),
+    };
+  });
+
+  const corners = tilesWithMatches.filter((t) => {
+    return values(t.edges).flatMap((e) => e.matches).length === 2;
+  });
+  console.log(
+    "Day 20 Part 1:",
+    corners.map((c) => c.id).reduce((acc, id) => acc * id, 1)
+  );
+
+  const topLeft = notNull(
+    tilesWithMatches.find((t) => {
+      return t.edges.top.matches.length === 0 && t.edges.left.matches.length === 0;
+    })
+  );
+
+  //  console.log(topLeft);
+
+  tilesWithMatches.forEach((t) => {
+    values(t.edges).forEach((edge) => {
+      if (edge.matches.length > 1) {
+        throw "Edge Ambiguous";
+      }
+    });
+  });
+  let topRow: TileEdges[] = [topLeft];
+  while (topRow.length < width) {
+    const curr = topRow[topRow.length - 1];
+    const nextId = curr.edges.right.matches[0];
+    const next = transformToMatchRightEdge(
+      curr.edges.right.edge,
+      notNull(tilesWithMatches.find((t) => t.id === nextId))
+    );
+    topRow = [...topRow, next];
+  }
+  //  console.log(topRow.map((t) => t.id));
+
+  let picture: TileEdges[][] = [];
+  // now work downwards
+  topRow.forEach((tile, index) => {
+    let col: TileEdges[] = [tile];
+    while (col.length < width) {
+      const curr = col[col.length - 1];
+      const nextId = curr.edges.bottom.matches[0];
+      const next = transformToMatchBottonEdge(
+        curr.edges.bottom.edge,
+        notNull(tilesWithMatches.find((t) => t.id === nextId))
+      );
+      col = [...col, next];
+    }
+    picture[index] = col;
+  });
+  picture = transpose(picture);
+
+  // strip the borders and rotate the pieces
+  const pic2 = picture.map((row) => row.map((cell) => stripBorder(applyTransforms(cell))));
+  const image: string[][] = [];
+  // create a blank image
+  for (let i = 0; i < 96; i++) {
+    const rw = [];
+    for (let j = 0; j < 96; j++) {
+      rw[j] = " ";
+    }
+    image[i] = rw;
+  }
+  // map the pieces into the image
+  pic2.forEach((line, lineNum) => {
+    line.forEach((t, cNum) => {
+      t.tile.forEach((tL, tLNum) => {
+        tL.split("").forEach((ch, chNum) => {
+          const lineNumber = lineNum * 8 + tLNum;
+          const colNumber = cNum * 8 + chNum;
+          image[lineNumber][colNumber] = ch;
+        });
+      });
+    });
+  });
+
+  const imageWithMonsters = rotateMatrix(rotateMatrix(image));
+  const monsters = findSeaMonsters(imageWithMonsters);
+  monsters.forEach((m) => removeSeaMonster(imageWithMonsters, m));
+
+  //  console.log("---MONSTERS---");
+  const hashes = imageWithMonsters.reduce(
+    (c, line) => c + line.reduce((acc, ch) => (ch === "#" ? acc + 1 : acc), 0),
+    0
+  );
+  console.log("Day 20 Part 2:", hashes);
+}
