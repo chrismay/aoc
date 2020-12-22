@@ -97,5 +97,3 @@ export function day22(): void {
   recursiveGame = playGame(recursiveGame, true);
   console.log("Day 22 Part 2:", scoreGame(recursiveGame));
 }
-
-day22();
