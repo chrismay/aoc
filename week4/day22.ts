@@ -5,11 +5,12 @@ import { gameInput } from "./day22_input";
 
 type Deck = List<number>;
 type Game = { p1: Deck; p2: Deck; prevP1: Set<string>; winner?: Player };
+type FinishedGame = { p1: Deck; p2: Deck; prevP1: Set<string>; winner: Player };
 type Player = "p1" | "p2";
 
 function playRound(prevRound: Game, playingRecusiveRule: boolean): Game {
   // Check that we aren't looping.
-  const p1Hand = prevRound.p1.join(",");
+  const p1Hand = prevRound.p1.sort().join(",");
   if (prevRound.prevP1.has(p1Hand)) {
     // Loop detection defaults the game to P1
     return { ...prevRound, winner: "p1" };
@@ -18,15 +19,14 @@ function playRound(prevRound: Game, playingRecusiveRule: boolean): Game {
     const p2Card = notNull(prevRound.p2.first());
 
     if (playingRecusiveRule && prevRound.p1.size > p1Card && prevRound.p2.size > p2Card) {
-      const recursiveGame: Game = {
+      const subGame: Game = {
         p1: prevRound.p1.slice(1, p1Card + 1),
         p2: prevRound.p2.slice(1, p2Card + 1),
         prevP1: Set(),
       };
-      const result = playGame(recursiveGame, true);
-      return exchangeCards(prevRound, notNull(result.winner));
+      const result = playGame(subGame, true);
+      return exchangeCards(prevRound, result.winner);
     } else {
-      //    Non-recursive; play normally
       const winner = p1Card > p2Card ? "p1" : "p2";
       return exchangeCards(prevRound, winner);
     }
@@ -34,27 +34,21 @@ function playRound(prevRound: Game, playingRecusiveRule: boolean): Game {
 }
 
 function exchangeCards(round: Game, roundWinner: Player): Game {
-  const prevP1 = round.prevP1.add(round.p1.join(","));
+  const prevP1 = round.prevP1.add(round.p1.sort().join(","));
   const p1Card = notNull(round.p1.first()); // assume we'll never be called with an empty list
   const p2Card = notNull(round.p2.first());
 
   if (roundWinner === "p1") {
     return checkForGameWinner({
       prevP1,
-      p1: round.p1.withMutations((p) => {
-        p.shift();
-        p.push(p1Card, p2Card);
-      }),
+      p1: round.p1.shift().push(p1Card, p2Card),
       p2: round.p2.shift(),
     });
   } else {
     return checkForGameWinner({
       prevP1,
       p1: round.p1.shift(),
-      p2: round.p2.withMutations((p) => {
-        p.shift();
-        p.push(p2Card, p1Card);
-      }),
+      p2: round.p2.shift().push(p2Card, p1Card),
     });
   }
 }
@@ -69,12 +63,13 @@ function checkForGameWinner(game: Game): Game {
   }
 }
 
-function playGame(start: Game, recursive: boolean) {
+function playGame(start: Game, recursive: boolean): FinishedGame {
   let game = start;
   while (game.winner === undefined) {
     game = playRound(game, recursive);
   }
-  return game;
+
+  return game as FinishedGame;
 }
 
 function parseInput(s: string): Game {
