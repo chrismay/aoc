@@ -1,8 +1,9 @@
-import { reverse, toNumber } from "lodash";
+import { List, Set } from "immutable";
+import { toNumber } from "lodash";
 import { notNull } from "../util";
 import { gameInput } from "./day22_input";
 
-type Deck = number[];
+type Deck = List<number>;
 type Game = { p1: Deck; p2: Deck; prevP1: Set<string>; winner?: Player };
 type Player = "p1" | "p2";
 
@@ -13,44 +14,58 @@ function playRound(prevRound: Game, playingRecusiveRule: boolean): Game {
     // Loop detection defaults the game to P1
     return { ...prevRound, winner: "p1" };
   } else {
-    const prevP1 = new Set([...prevRound.prevP1, p1Hand]);
+    const p1Card = notNull(prevRound.p1.first()); // assume we'll never be called with an empty list
+    const p2Card = notNull(prevRound.p2.first());
 
-    // construct the input state for the next round, initially just a clone of the current state
-    const nextRound = { p1: [...prevRound.p1], p2: [...prevRound.p2], prevP1 };
-    const p1Card = notNull(nextRound.p1.shift());
-    const p2Card = notNull(nextRound.p2.shift());
-    if (playingRecusiveRule && nextRound.p1.length >= p1Card && nextRound.p2.length >= p2Card) {
+    if (playingRecusiveRule && prevRound.p1.size > p1Card && prevRound.p2.size > p2Card) {
       const recursiveGame: Game = {
-        p1: [...nextRound.p1].slice(0, p1Card),
-        p2: [...nextRound.p2].slice(0, p2Card),
-        prevP1: new Set(),
+        p1: prevRound.p1.slice(1, p1Card + 1),
+        p2: prevRound.p2.slice(1, p2Card + 1),
+        prevP1: Set(),
       };
       const result = playGame(recursiveGame, true);
-      if (result.winner === "p1") {
-        nextRound.p1.push(p1Card);
-        nextRound.p1.push(p2Card);
-      } else {
-        nextRound.p2.push(p2Card);
-        nextRound.p2.push(p1Card);
-      }
+      return exchangeCards(prevRound, notNull(result.winner));
     } else {
       //    Non-recursive; play normally
-      if (p1Card > p2Card) {
-        nextRound.p1.push(p1Card);
-        nextRound.p1.push(p2Card);
-      } else {
-        nextRound.p2.push(p2Card);
-        nextRound.p2.push(p1Card);
-      }
+      const winner = p1Card > p2Card ? "p1" : "p2";
+      return exchangeCards(prevRound, winner);
     }
-    // determine whether anyone's won yet.
-    if (nextRound.p1.length === 0) {
-      return { ...nextRound, winner: "p2" };
-    } else if (nextRound.p2.length === 0) {
-      return { ...nextRound, winner: "p1" };
-    } else {
-      return nextRound;
-    }
+  }
+}
+
+function exchangeCards(round: Game, roundWinner: Player): Game {
+  const prevP1 = round.prevP1.add(round.p1.join(","));
+  const p1Card = notNull(round.p1.first()); // assume we'll never be called with an empty list
+  const p2Card = notNull(round.p2.first());
+
+  if (roundWinner === "p1") {
+    return checkForGameWinner({
+      prevP1,
+      p1: round.p1.withMutations((p) => {
+        p.shift();
+        p.push(p1Card, p2Card);
+      }),
+      p2: round.p2.shift(),
+    });
+  } else {
+    return checkForGameWinner({
+      prevP1,
+      p1: round.p1.shift(),
+      p2: round.p2.withMutations((p) => {
+        p.shift();
+        p.push(p2Card, p1Card);
+      }),
+    });
+  }
+}
+
+function checkForGameWinner(game: Game): Game {
+  if (game.p1.size === 0) {
+    return { ...game, winner: "p2" };
+  } else if (game.p2.size === 0) {
+    return { ...game, winner: "p1" };
+  } else {
+    return game;
   }
 }
 
@@ -69,12 +84,12 @@ function parseInput(s: string): Game {
       .filter((l) => /^[0-9]+$/.test(l))
       .map(toNumber)
   );
-  return { p1, p2, prevP1: new Set() };
+  return { p1: List(p1), p2: List(p2), prevP1: Set() };
 }
 
 function scoreGame(g: Game): number {
-  const winningHand = g.p1.length === 0 ? g.p2 : g.p1;
-  return reverse(winningHand).reduce((score, card, idx) => score + card * (idx + 1), 0);
+  const winningHand = g.p1.size === 0 ? g.p2 : g.p1;
+  return winningHand.reverse().reduce((score, card, idx) => score + card * (idx + 1), 0);
 }
 export function day22(): void {
   let regularGame = parseInput(gameInput);
@@ -85,4 +100,5 @@ export function day22(): void {
   recursiveGame = playGame(recursiveGame, true);
   console.log("Day 22 Part 2:", scoreGame(recursiveGame));
 }
+
 day22();
