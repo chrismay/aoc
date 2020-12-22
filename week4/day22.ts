@@ -10,6 +10,8 @@ type Player = "p1" | "p2";
 
 function playRound(prevRound: Game, playingRecusiveRule: boolean): Game {
   // Check that we aren't looping.
+  // For unclear reasons, it's enough to check if the same cards have appeared in one hand
+  // in any order.
   const p1Hand = prevRound.p1.sort().join(",");
   if (prevRound.prevP1.has(p1Hand)) {
     // Loop detection defaults the game to P1
