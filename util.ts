@@ -37,3 +37,8 @@ export function notNull<T>(t: T | undefined): T {
   }
   return t;
 }
+
+// modulo function that always returns positive values
+export function absMod(val: number, mod: number): number {
+  return ((val % mod) + mod) % mod;
+}

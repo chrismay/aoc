@@ -29,8 +29,8 @@ function playRound(prevRound: Game, playingRecusiveRule: boolean): Game {
       const result = playGame(subGame, true);
       return exchangeCards(prevRound, result.winner);
     } else {
-      const winner = p1Card > p2Card ? "p1" : "p2";
-      return exchangeCards(prevRound, winner);
+      const roundWinner = p1Card > p2Card ? "p1" : "p2";
+      return exchangeCards(prevRound, roundWinner);
     }
   }
 }
@@ -70,7 +70,6 @@ function playGame(start: Game, recursive: boolean): FinishedGame {
   while (game.winner === undefined) {
     game = playRound(game, recursive);
   }
-
   return game as FinishedGame;
 }
 

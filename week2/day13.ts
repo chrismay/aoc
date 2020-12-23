@@ -1,4 +1,5 @@
 import { add, findIndex, multiply, range, toNumber } from "lodash";
+import { absMod } from "../util";
 import { day13Input } from "./day13_input";
 
 function parseInput(input: string) {
@@ -34,11 +35,6 @@ function parseInputPart2(input: string) {
       .map((n, i) => [toNumber(n), i])
       .filter(([n]) => isFinite(n)),
   };
-}
-
-// modulo function that always returns positive values
-function absMod(val: number, mod: number): number {
-  return ((val % mod) + mod) % mod;
 }
 
 export function day13(): void {
