@@ -1,8 +1,9 @@
-import { countBy, toPairs } from "lodash";
+import { fromPairs, toPairs, uniq, values } from "lodash";
 import { tileInput } from "./day24_input";
 
 type Coord = { x: number; y: number; z: number };
 type Move = "e" | "w" | "ne" | "nw" | "se" | "sw";
+type Pattern = { [coord: string]: boolean };
 
 function nextToken(input: string): { token: Move; rest: string } {
   const s = input.substr(0, 1);
@@ -45,11 +46,72 @@ function getOffset(moves: Move[]) {
   return moves.reduce(applyMove, start);
 }
 
+function getSurrounding(position: Coord): Coord[] {
+  const allDirections: Move[] = ["e", "w", "ne", "nw", "se", "sw"];
+  return allDirections.map((dir) => applyMove(position, dir));
+}
+function countSurroundingBlackPieces(pattern: Pattern, position: Coord) {
+  return getSurrounding(position)
+    .map((pos) => getPiece(pattern, pos) || false)
+    .filter((v) => v).length;
+}
+
+function getNextRoundPieces(pattern: Pattern) {
+  return uniq(
+    toPairs(pattern)
+      .filter(([, v]) => v)
+      .map(([k]) => JSON.parse(k) as Coord)
+      .flatMap(getSurrounding)
+  );
+}
+function getPiece(pattern: Pattern, pos: Coord): boolean {
+  return pattern[JSON.stringify(pos)] || false;
+}
+
+function determinePieceColour(pattern: Pattern, pos: Coord): boolean {
+  const count = countSurroundingBlackPieces(pattern, pos);
+  const currentlyBlack = getPiece(pattern, pos);
+  if ((currentlyBlack && count === 0) || count > 2) {
+    return false;
+  }
+  if (!currentlyBlack && count === 2) {
+    return true;
+  }
+  return currentlyBlack;
+}
+
+function evolvePattern(pattern: Pattern) {
+  const pieces = getNextRoundPieces(pattern);
+  const newState: [string, boolean][] = pieces.map((pos) => [JSON.stringify(pos), determinePieceColour(pattern, pos)]);
+  return fromPairs(newState.filter(([, v]) => v)) as Pattern;
+}
+function countBlackPieces(pattern: Pattern): number {
+  return values(pattern).filter((v) => v).length;
+}
+
 export function day24() {
-  const modified = tileInput.split("\n").map((moves) => {
-    return JSON.stringify(getOffset(parseMoves(moves)));
+  const modifications = tileInput.split("\n").map((moves) => JSON.stringify(getOffset(parseMoves(moves))));
+  const pattern: Pattern = {};
+  modifications.forEach((m) => {
+    pattern[m] = !(pattern[m] || false);
   });
-  console.log("Day 24 Part 1:", toPairs(countBy(modified)).filter(([, v]) => v % 2 === 1).length);
+
+  console.log("Day 24 Part 1:", countBlackPieces(pattern));
+
+  const d2StartMoves = tileInput.split("\n").map((moves) => JSON.stringify(getOffset(parseMoves(moves))));
+  const d2StartPattern: Pattern = {};
+  d2StartMoves.forEach((m) => {
+    d2StartPattern[m] = !(d2StartPattern[m] || false);
+  });
+  // console.log(d2StartMoves.length);
+  // console.log(countBlackPieces(d2StartPattern));
+  // console.log(countBlackPieces(evolvePattern(evolvePattern(d2StartPattern))));
+  let evolvingPattern = d2StartPattern;
+  for (let i = 1; i <= 100; i++) {
+    evolvingPattern = evolvePattern(evolvingPattern);
+    //    console.log(i, countBlackPieces(evolvingPattern));
+  }
+  console.log("Day 24 Part 2:", countBlackPieces(evolvingPattern));
 }
 
 day24();
