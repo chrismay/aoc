@@ -24,5 +24,3 @@ export function day25(): void {
 
   console.log("Day 25 Part 1:", pk1);
 }
-
-day25();

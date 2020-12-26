@@ -58,4 +58,3 @@ export function day21(): void {
       .join()
   );
 }
-day21();

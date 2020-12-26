@@ -1,4 +1,5 @@
-import { doWhile } from "../util";
+import { Seq } from "immutable";
+import { iterate, notNull } from "../util";
 import { day8Program } from "./day8_input";
 
 type ProgramState = {
@@ -91,11 +92,13 @@ export function day8(): void {
   };
 
   function evaluate(program: string[]): TrackingProgramState {
-    return doWhile(
-      loopGuard(terminationGuard(executeInstruction(program), program.length)),
-      (st) => st.halt === "NO",
-      initialState
+    const computations = Seq(
+      iterate(loopGuard(terminationGuard(executeInstruction(program), program.length)), initialState)
     );
+
+    const endState = computations.find((st) => st.halt !== "NO");
+
+    return notNull(endState);
   }
 
   const program = day8Program.split("\n");
