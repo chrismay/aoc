@@ -1,5 +1,6 @@
+import { Seq } from "immutable";
 import { cloneDeep, isEqual, memoize } from "lodash";
-import { doWhile } from "../util";
+import { iterate, notNull } from "../util";
 import { day11Input } from "./day11_input";
 
 type Seat = "L" | "." | "#";
@@ -82,8 +83,10 @@ function move(from: Coord, dir: Coord): Coord {
 
 function findFirstSeat(board: Board, start: Coord, direction: Coord): Seat {
   const l = lens(board);
-  const keepSearching = (c: Coord) => isOnBoard(board)(c) && l.getSeatAt(c) === ".";
-  const endCoord = doWhile((coord) => move(coord, direction), keepSearching, move(start, direction));
+  const freeSeat = (c: Coord) => isOnBoard(board)(c) && l.getSeatAt(c) === ".";
+  const endCoord = notNull(
+    Seq(iterate((coord) => move(coord, direction), move(start, direction))).find((s) => !freeSeat(s))
+  );
   if (isOnBoard(board)(endCoord)) {
     return l.getSeatAt(endCoord);
   }
@@ -117,15 +120,19 @@ export function day11(): void {
   const init: State = { next: day11Board };
 
   const evolveBoard = (s: State) => ({ prev: s.next, next: evolve(s.next, evolveSeatP1) });
-  const result = doWhile(evolveBoard, (s) => !isEqual(s.next, s.prev), init);
-  const occupied = result.next.reduce((count, b) => count + b.reduce((count, s) => count + (s === "#" ? 1 : 0), 0), 0);
+  const result = Seq(iterate(evolveBoard, init)).find((s) => isEqual(s.next, s.prev), init);
+  const occupied = notNull(result).next.reduce(
+    (count, b) => count + b.reduce((count, s) => count + (s === "#" ? 1 : 0), 0),
+    0
+  );
   console.log("Day 11 Part 1:", occupied);
 
   const evolveBoard2 = (s: State) => ({ prev: s.next, next: evolve(s.next, evolveSeatP2) });
-  const result2 = doWhile(evolveBoard2, (s) => !isEqual(s.next, s.prev), init);
-  const occupied2 = result2.next.reduce(
+  const result2 = Seq(iterate(evolveBoard2, init)).find((s) => isEqual(s.next, s.prev), init);
+  const occupied2 = notNull(result2).next.reduce(
     (count, b) => count + b.reduce((count, s) => count + (s === "#" ? 1 : 0), 0),
     0
   );
   console.log("Day 11 Part 2:", occupied2);
 }
+day11();
