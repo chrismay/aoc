@@ -1,28 +1,28 @@
-import { range } from "lodash";
-import { doWhile } from "../util";
+import { Seq } from "immutable";
+import { curry, range } from "lodash";
+import { iterate } from "../util";
 
-function transform(value: number, subject: number): number {
+function hash(subject: number, value: number): number {
   return (value * subject) % 20201227;
 }
 
 function transformUntilMatch(publicKey: number) {
-  return doWhile(
-    ({ value, loops: loops }) => ({ value: transform(value, 7), loops: ++loops }),
-    ({ value }) => value !== publicKey,
-    { value: 1, loops: 0 }
-  ).loops;
+  const hashSubject = curry(hash);
+  return Seq(iterate(hashSubject(7), 1)).findIndex((value) => value === publicKey);
 }
 
 function transformRepeatedly(subject: number, iterations: number): number {
-  return range(0, iterations).reduce((value) => transform(value, subject), 1);
+  return range(0, iterations).reduce((value) => hash(subject, value), 1);
 }
 
 export function day25(): void {
   const key1 = 17607508;
   const key2 = 15065270;
   const key2Iterations = transformUntilMatch(key2);
-
+  //  console.log(key2Iterations);
   const pk1 = transformRepeatedly(key1, key2Iterations);
 
   console.log("Day 25 Part 1:", pk1);
 }
+
+day25();

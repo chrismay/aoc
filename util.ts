@@ -42,3 +42,12 @@ export function notNull<T>(t: T | undefined): T {
 export function absMod(val: number, mod: number): number {
   return ((val % mod) + mod) % mod;
 }
+
+// Create a generator that repeatedly applies a function to its own output.
+export function* iterate<T>(f: (t: T) => T, init: T) {
+  let current = init;
+  while (true) {
+    yield current;
+    current = f(current);
+  }
+}
