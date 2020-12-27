@@ -1,5 +1,4 @@
 import { sortBy } from "lodash";
-import { partialReduce } from "../util";
 import { tickets } from "./day5_inputs";
 
 function seatId(ticket: string): number {
@@ -14,8 +13,5 @@ export function day5(): void {
 
   const lowestSeat = allocatedSeats[0];
 
-  console.log(
-    "Day 5 Part 2:",
-    partialReduce(allocatedSeats, (curr, alloc) => (curr === alloc ? ++curr : undefined), lowestSeat)
-  );
+  console.log("Day 5 Part 2:", allocatedSeats.findIndex((s, i) => s !== i + lowestSeat) + lowestSeat);
 }

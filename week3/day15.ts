@@ -1,5 +1,6 @@
+import { Seq } from "immutable";
 import { assign, fromPairs, last, max, range } from "lodash";
-import { doWhile, time } from "../util";
+import { iterate, time } from "../util";
 
 type State = {
   turn: number;
@@ -35,8 +36,15 @@ function start(nums: number[]): State {
 }
 
 export function day15(): void {
-  const p1 = time("dw", doWhile)(turn, (state) => state.turn !== 2021, time("st", start)([12, 1, 16, 3, 11, 0]));
-  console.log("Day 15 Part 1:", p1.lastSpoken);
-  const p2 = time("dw", doWhile)(turn, (state) => state.turn !== 30000001, time("st", start)([12, 1, 16, 3, 11, 0]));
-  console.log("Day 15 Part 2:", p2.lastSpoken);
+  const hand = [12, 1, 16, 3, 11, 0];
+
+  const index = 2020 - hand.length; // want the result after hands played; the first <hand.length> turns are played in "start".
+  const ls = Seq(iterate(turn, start(hand))).get(index)?.lastSpoken;
+  console.log("Day 15 Part 1:", ls);
+
+  const index2 = 30000000 - hand.length;
+  const ls2 = Seq(iterate(turn, start(hand))).get(index2)?.lastSpoken;
+  console.log("Day 15 Part 2:", ls2);
 }
+
+day15();

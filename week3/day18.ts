@@ -1,5 +1,6 @@
+import { Seq } from "immutable";
 import { last, sum } from "lodash";
-import { doWhile, notNull } from "../util";
+import { iterate, notNull } from "../util";
 import { sums } from "./day18_input";
 
 type Stack<T> = T[];
@@ -44,47 +45,46 @@ function shunt(expr: string[], precedence: (s: string) => number): string[] {
     if (isFinite(+token)) {
       return { ...s, outputQueue: push(token, s.outputQueue) };
     } else if (token === "+" || token === "*") {
-      const os = doWhile(
-        (os) => {
+      const os: State = Seq(
+        iterate((os) => {
           const { e: operator, remaining } = pop(os.operatorStack);
           return { outputQueue: push(operator, os.outputQueue), operatorStack: remaining };
-        },
-        (os) =>
-          os.operatorStack.length > 0 &&
-          precedence(token) <= +precedence(peek(os.operatorStack)) &&
-          peek(os.operatorStack) !== "(",
-        s
-      );
+        }, s)
+      )
+        .skipWhile(
+          (os) =>
+            os.operatorStack.length > 0 &&
+            precedence(token) <= +precedence(peek(os.operatorStack)) &&
+            peek(os.operatorStack) !== "("
+        )
+        .first();
       return { ...os, operatorStack: push(token, os.operatorStack) };
     } else if (token === "(") {
       return { ...s, operatorStack: push(token, s.operatorStack) };
     } else if (token === ")") {
-      const bs = doWhile(
-        (bs) => {
+      const bs: State = Seq(
+        iterate((bs) => {
           const { e: operator, remaining } = pop(bs.operatorStack);
           return { outputQueue: push(operator, bs.outputQueue), operatorStack: remaining };
-        },
-        (bs) => peek(bs.operatorStack) !== "(",
-        { ...s }
-      );
-      if (peek(bs.operatorStack) === "(") {
-        return { ...bs, operatorStack: pop(bs.operatorStack).remaining };
-      } else {
-        return bs;
-      }
+        }, s)
+      )
+        .skipWhile((bs) => peek(bs.operatorStack) !== "(")
+        .first();
+      return { ...bs, operatorStack: pop(bs.operatorStack).remaining };
     }
     throw "Unparseable token " + token;
   }, state);
 
   // push the remainder of the operator stack into the end of the output queue.
-  return doWhile(
-    (res) => {
+  const r: State = Seq(
+    iterate((res) => {
       const { e, remaining } = pop(res.operatorStack);
       return { operatorStack: remaining, outputQueue: push(e, res.outputQueue) };
-    },
-    (res) => res.operatorStack.length > 0,
-    result
-  ).outputQueue;
+    }, result)
+  )
+    .skipWhile((res) => res.operatorStack.length > 0)
+    .first();
+  return r.outputQueue;
 }
 
 function evaluate(rpn: string[]): number {
@@ -141,3 +141,4 @@ export function day18(): void {
     )
   );
 }
+day18();
